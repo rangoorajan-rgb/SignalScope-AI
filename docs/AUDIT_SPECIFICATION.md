@@ -147,17 +147,23 @@ collection begins.
 
 Queries are constructed to reflect how a buyer's questions change as they move
 through a purchase decision, so that visibility can be understood by journey stage
-rather than as a single undifferentiated score. The framework uses four stages:
+rather than as a single undifferentiated score. The framework uses five stages,
+aligned with the stages used throughout the project's buyer question library:
 
-1. **Awareness** — the buyer is exploring a problem or need and has not yet framed it
-   in terms of named solutions or brands (for example, "what are the options for
-   solving [problem]?").
-2. **Consideration** — the buyer is aware that solutions and brands exist and is
-   forming a shortlist (for example, "who are the leading providers of [category]?").
-3. **Evaluation** — the buyer is comparing specific, named options against each other
-   (for example, "how does [brand] compare to [competitor]?").
-4. **Decision** — the buyer is validating a near-final choice (for example, "is
-   [brand] a good choice for [need]?" or "reviews of [brand]").
+1. **Problem Awareness** — the buyer is exploring a problem or need and has not yet
+   framed it in terms of named solutions or brands (for example, "what are the
+   options for solving [problem]?").
+2. **Solution Discovery** — the buyer is aware that solutions exist and is exploring
+   the options available, without yet naming specific brands (for example, "who are
+   the leading providers of [category]?").
+3. **Vendor Comparison** — the buyer is comparing specific, named vendors against
+   each other (for example, "how does [brand] compare to [competitor]?").
+4. **Vendor Evaluation** — the buyer is carrying out deeper due diligence on a
+   specific vendor, such as checking its reputation and track record (for example,
+   "what do customers say about [brand]?").
+5. **Purchase Decision** — the buyer is validating a near-final choice immediately
+   before committing (for example, "is [brand] a good choice for [need]?" or "what
+   should I know before signing up with [brand]?").
 
 Every query in the evidence set is tagged to the journey stage it represents, so
 findings can show not only whether a brand is visible overall, but at which stages of
