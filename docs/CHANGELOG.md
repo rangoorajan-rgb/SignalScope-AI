@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 project will adhere to [Semantic Versioning](https://semver.org/) once a first
 functional release exists.
 
+## [0.2] — 2026-07-16
+
+### Added
+
+- [AUDIT_SPECIFICATION.md](AUDIT_SPECIFICATION.md): the consulting specification for
+  Build 1 of the SignalScope AI audit, covering business rationale, audit objective,
+  scope, target markets, buyer personas, competitor selection, the buyer journey
+  framework, methodology, the four-dimensional scoring framework (Visibility,
+  Prominence, Authority, Sentiment), human validation, governance, limitations,
+  planned outputs and success criteria.
+
+No implementation, code, prompts, or numeric scoring formulae were added in this
+version — see the specification's own notes on decisions deferred to Build 1.
+
 ## [0.1] — 2026-07-16
 
 ### Added
