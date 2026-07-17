@@ -1,8 +1,18 @@
 # tests/
 
-Reserved for automated tests covering the SignalScope AI workflow, once source code
-exists in [src/](../src/) to test.
+Automated tests covering the SignalScope AI workflow's source code in
+[src/](../src/).
 
-No tests have been written yet. This folder is a placeholder created as part of the
-project foundation. See [CURRENT_SPRINT.md](../CURRENT_SPRINT.md) for current project
-status.
+## test_audit_runner.py
+
+Tests for `src/audit_runner.py`, written with Python's built-in `unittest` module
+(no additional dependency required). Covers: loading a valid question file, a
+missing file, a file missing required columns, an empty question file, the printed
+output format, and an integration check against the real
+[Boots UK Health & Beauty audit instance](../audits/boots-uk-health-beauty/buyer_questions.csv).
+
+Run the tests with:
+
+```
+python -m unittest discover -s tests
+```
