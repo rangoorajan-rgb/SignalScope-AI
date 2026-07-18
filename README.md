@@ -32,6 +32,7 @@ Instead of attempting to automatically optimise websites, SignalScope AI measure
 - Product Overview
 - Project Highlights
 - Quick Start
+- Streamlit Dashboard
 - Architecture Overview
 - GEO Workflow
 - Core Engines
@@ -238,6 +239,42 @@ python -m unittest discover -s tests -v
 
 ---
 
+# Streamlit Dashboard
+
+SignalScope AI includes a read-only Streamlit dashboard that presents existing GEO audit data and generated reports through a simple browser interface.
+
+The dashboard provides:
+
+- Current project details
+- Total AI responses analysed
+- Brand citation metrics
+- Competitor citation metrics
+- Source citation metrics
+- Structured audit evidence
+- Selectable report views
+- Markdown report downloads
+- Project architecture overview
+
+The dashboard is intentionally read-only. It does not modify audit data, execute new audits or regenerate reports. It only reads and displays the CSV audit results and Markdown reports that the four engines have already generated.
+
+## Project Scope
+
+This portfolio build of SignalScope AI is configured for a single demonstration engagement: **Boots UK**, in the Health & Beauty Retail category, within the United Kingdom market, benchmarked against Superdrug, Amazon and Holland & Barrett. It is a single-company demonstration rather than a multi-tenant product.
+
+## Configuration
+
+`config.py`, in the project root, controls the dashboard's project metadata only — company name, industry, country, competitor list and question library name. It has no effect on the Audit, Insights, Recommendation or Measurement Engines, which define their own audit scope independently and are not read from this file. There is no in-app editing interface; to reuse this project for a different company, edit the values in `config.py` directly.
+
+## Run the Dashboard
+
+```bash
+python -m streamlit run streamlit_app.py
+```
+
+The dashboard opens in your browser and reads directly from the existing `audits/` and `reports/` directories — running it does not trigger a new audit.
+
+---
+
 # Architecture Overview
 
 SignalScope AI follows a modular, pipeline-based architecture where each engine has a single responsibility. Rather than allowing one large AI model to make every decision, deterministic software performs objective analysis while AI is used only where reasoning and interpretation genuinely add value.
@@ -299,11 +336,12 @@ This modular approach keeps each component independently testable while allowing
 |-----------|------------|
 | Language | Python 3.11+ |
 | AI Model | Google Gemini |
+| Dashboard | Streamlit |
 | Testing | unittest |
 | Reporting | Markdown |
 | Version Control | Git |
 | Dependency Management | pip |
-| Environment Variables | python-dotenv |
+| Environment Variables | Minimal built-in `.env` loader (no external dependency) |
 | Architecture | Modular Pipeline |
 | Development | VS Code |
 | Repository | GitHub |
@@ -316,31 +354,49 @@ This modular approach keeps each component independently testable while allowing
 SignalScope-AI/
 │
 ├── src/
-│   ├── audit_engine/
-│   ├── insights_engine/
-│   ├── recommendation_engine/
-│   ├── measurement_engine/
-│   ├── reporting/
-│   ├── utils/
-│   └── run_end_to_end_demo.py
+│   ├── audit_runner.py              # Loads and validates the buyer question library
+│   ├── gemini_client.py             # Minimal Gemini API wrapper
+│   ├── response_analyzer.py         # Structured extraction from a raw AI response
+│   ├── write_single_audit_result.py # Shared, atomic audit-results CSV writer
+│   ├── run_single_audit.py          # Single-question Gemini integration
+│   ├── run_batch_audit.py           # Batch runner with retry logic
+│   ├── run_structured_audit.py      # Single-question structured audit pipeline
+│   ├── report_generator.py          # Insights Engine: audit_report.md
+│   ├── geo_findings_analyzer.py     # Insights Engine: GEO_FINDINGS.md
+│   ├── recommendation_engine.py     # Recommendation Engine: GEO_RECOMMENDATIONS.md
+│   ├── measurement_engine.py        # Measurement Engine: GEO_PROGRESS.md
+│   ├── run_end_to_end_demo.py       # Full pipeline, single question
+│   ├── check_gemini_connection.py   # Standalone Gemini connectivity check
+│   └── dashboard_data.py            # Non-UI data layer for the Streamlit dashboard
 │
-├── tests/
-│   ├── audit/
-│   ├── insights/
-│   ├── recommendation/
-│   ├── measurement/
-│   └── integration/
+├── tests/                           # One test module per src/ file (unittest)
 │
-├── docs/
+├── audits/
+│   └── boots-uk-health-beauty/
+│       ├── buyer_questions.csv      # Placeholder-substituted question set
+│       └── audit_results.csv        # Structured audit evidence (11-column schema)
 │
-├── outputs/
+├── reports/
+│   └── boots-uk-health-beauty/
+│       ├── audit_report.md
+│       ├── GEO_FINDINGS.md
+│       ├── GEO_RECOMMENDATIONS.md
+│       └── GEO_PROGRESS.md
 │
+├── questions/
+│   └── buyer_questions_master.csv   # Reusable, placeholder-only question library
+│
+├── docs/                            # Methodology, specification and ADRs
+│
+├── streamlit_app.py                 # Read-only dashboard
+├── config.py                        # Dashboard project metadata only
 ├── requirements.txt
 ├── README.md
+├── CURRENT_SPRINT.md
 └── .env.example
 ```
 
-The repository has been organised around functional responsibilities rather than file type, making navigation straightforward as the project continues to grow.
+The repository is organised as a flat, functional pipeline: each `src/` module has a single responsibility and its own dedicated test file, making navigation straightforward as the project continues to grow.
 
 ---
 
