@@ -185,7 +185,7 @@ Artificial Intelligence is reserved for tasks that genuinely benefit from reason
 Clone the repository.
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/SignalScope-AI.git
+git clone https://github.com/rangoorajan-rgb/SignalScope-AI.git
 
 cd SignalScope-AI
 ```
@@ -1008,294 +1008,308 @@ These outputs are designed to support consultant reviews, internal reporting and
 
 ---
 
-## Responsibilities
+# Engineering Philosophy
 
-The Recommendation Engine is responsible for:
+SignalScope AI was developed around a small number of engineering principles that guided every architectural decision throughout the project.
 
-- Prioritising optimisation opportunities
-- Translating analytical findings into business actions
-- Grouping related recommendations
-- Explaining the reasoning behind each recommendation
-- Maintaining complete traceability to audit evidence
+Rather than maximising the amount of AI used, the objective was to maximise reliability, explainability and maintainability.
 
-The engine intentionally avoids producing generic SEO advice.
+The project deliberately combines deterministic software engineering with Large Language Models, allowing each technology to be used where it provides the greatest value.
 
-Instead, every recommendation is derived from the specific findings of the current audit.
+The following principles shaped the entire system.
 
 ---
 
-## Recommendation Pipeline
+## 1. Evidence Before Interpretation
 
-```text
-Insights
-     │
-     ▼
-Opportunity Detection
-     │
-     ▼
-Impact Assessment
-     │
-     ▼
-Priority Ranking
-     │
-     ▼
-Business Recommendations
-```
+The platform never generates recommendations before collecting evidence.
+
+Every optimisation opportunity originates from measurable observations produced during the audit process.
+
+This separation reduces unsupported conclusions while making every recommendation traceable.
 
 ---
 
-## Recommendation Categories
+## 2. Deterministic Where Possible
 
-Recommendations are organised into logical themes to improve readability and implementation.
-
-### Content Improvements
+Tasks involving objective calculations remain within traditional Python code.
 
 Examples include:
 
-- Create missing educational content
-- Expand comparison pages
-- Improve topical coverage
-- Address unanswered customer questions
+- parsing responses
+- counting mentions
+- calculating visibility
+- comparing audits
+- validating historical data
+
+Keeping these operations deterministic improves repeatability while making automated testing significantly easier.
 
 ---
 
-### Authority Improvements
+## 3. AI Where It Adds Value
 
-Examples include:
+Large Language Models are used for reasoning rather than arithmetic.
 
-- Increase citations from authoritative sources
-- Improve trust signals
-- Publish expert-led content
-- Strengthen evidence supporting expertise
+Within SignalScope AI, AI is responsible for tasks such as:
 
----
+- identifying strategic themes
+- summarising findings
+- explaining recommendations
+- communicating insights
 
-### Brand Visibility
-
-Examples include:
-
-- Improve consistency of messaging
-- Increase topical relevance
-- Strengthen entity recognition
-- Improve brand differentiation
+Objective calculations are intentionally kept outside the language model.
 
 ---
 
-### Technical Improvements
+## 4. Modular Architecture
 
-Where appropriate, the engine may recommend:
+Each engine performs a single responsibility.
 
-- Structured data enhancements
-- Better information architecture
-- Clearer product descriptions
-- Improved accessibility of important content
+This provides several advantages:
+
+- easier maintenance
+- independent testing
+- simpler debugging
+- cleaner future expansion
+- improved readability
+
+Future functionality can therefore be added without redesigning the existing architecture.
+
+---
+
+## 5. Human Decision Making
+
+SignalScope AI intentionally avoids making autonomous business decisions.
+
+The platform supports decision making by presenting evidence, insights and recommendations.
+
+Final implementation decisions remain with the organisation.
 
 ---
 
-## Prioritisation Strategy
+# AI Design Principles
 
-Not every recommendation delivers the same business value.
+One of the primary goals of this project was demonstrating responsible AI engineering.
 
-SignalScope AI therefore assigns priorities based on:
-
-- expected impact
-- supporting evidence
-- implementation complexity
-- strategic importance
-
-This allows organisations to focus their efforts where improvements are most likely to influence AI visibility.
-
----
+Several safeguards were intentionally incorporated into the architecture.
 
 ## Explainability
 
-Every recommendation is supported by audit findings.
+Every recommendation references supporting evidence gathered during previous stages.
 
-Rather than producing statements such as:
-
-> Improve authority.
-
-SignalScope AI instead explains why the recommendation exists.
-
-For example:
-
-- Competitors were cited in 8 of 10 responses.
-- The audited organisation appeared only twice.
-- Government and industry sources dominated citations.
-- No evidence of expert content was identified.
-
-This approach improves trust while making recommendations easier to justify to stakeholders.
+Recommendations are therefore transparent rather than opaque AI opinions.
 
 ---
 
-# Measurement Engine
+## Traceability
 
-The Measurement Engine closes the GEO improvement loop.
+Every stage of the pipeline builds upon outputs produced by the previous engine.
 
-After recommendations have been implemented, organisations can run another audit and compare the results against previous evidence.
-
-The objective is not simply to report differences but to determine whether meaningful progress has occurred.
+This creates a clear audit trail from raw AI response through to final recommendation.
 
 ---
 
-## Responsibilities
+## Validation
 
-The Measurement Engine performs:
+The Measurement Engine validates historical evidence before generating comparisons.
 
-- audit comparison
-- visibility comparison
-- competitor comparison
-- citation comparison
-- recommendation validation
-- improvement reporting
+If insufficient evidence exists, the platform reports this explicitly instead of producing speculative conclusions.
 
 ---
 
-## Measurement Workflow
+## Separation of Responsibilities
 
-```text
-Previous Audit
-        │
-        ├────────────┐
-        │            │
-        ▼            ▼
-Current Audit   Structural Validation
-        │            │
-        └──────┬─────┘
-               ▼
-Comparison Engine
-               │
-               ▼
-Improvement Report
-```
+The system deliberately avoids asking the language model to perform every task.
+
+Traditional software engineering and AI each perform the work they are best suited for.
+
+This hybrid architecture improves robustness while reducing unnecessary dependence upon AI.
 
 ---
 
-## Structural Validation
+# Key Design Decisions
 
-One of the defining features of Version 2 is structural validation.
+Several architectural decisions intentionally differ from many AI applications.
 
-Before generating comparisons, the engine verifies that sufficient historical evidence exists.
+## Markdown Reports
 
-If only one audit is available, SignalScope AI reports that historical comparison cannot yet be performed.
+Markdown was selected because it is:
 
-The platform intentionally avoids manufacturing improvements where no previous evidence exists.
-
-This behaviour reflects the project's guiding principle:
-
-> Evidence should always take precedence over assumption.
-
----
-
-## Comparison Categories
-
-When multiple audits exist, the Measurement Engine evaluates:
-
-### Brand Visibility
-
-- Increased mentions
-- Reduced mentions
-- Stable visibility
-
----
-
-### Competitor Visibility
-
-- Competitors gaining visibility
-- Competitors losing visibility
-- Newly emerging competitors
-
----
-
-### Authority Sources
-
-The engine evaluates whether citation patterns have changed over time.
-
-Examples include:
-
-- additional authoritative sources
-- reduced dependency on weaker sources
-- improved diversity of citations
-
----
-
-### Recommendation Progress
-
-Recommendations generated during previous audits can be reviewed alongside current evidence.
-
-This enables organisations to determine:
-
-- which improvements were implemented
-- which recommendations remain relevant
-- where additional work is required
-
----
-
-# Reporting
-
-Every engine contributes towards producing clear, human-readable reports.
-
-SignalScope AI deliberately favours Markdown output because it is:
-
-- portable
+- lightweight
 - version controllable
-- easy to review
-- compatible with GitHub
-- suitable for consultants
-- suitable for business stakeholders
-
-Reports are designed to be understandable by both technical and non-technical audiences.
+- human readable
+- GitHub compatible
+- consultant friendly
 
 ---
 
-# Testing
+## Four Independent Engines
 
-Software quality was treated as a first-class requirement throughout development.
+Instead of one large processing pipeline, functionality is separated into:
 
-Rather than relying solely on manual testing, SignalScope AI includes an extensive automated testing suite covering both individual components and complete workflows.
+- Audit
+- Insights
+- Recommendations
+- Measurement
 
----
-
-## Test Coverage
-
-The project contains over **270 automated tests**, including:
-
-- unit tests
-- integration tests
-- parser tests
-- engine tests
-- reporting tests
-- measurement validation
-- regression tests
-
-The objective is to ensure future development can occur with confidence while reducing the likelihood of introducing regressions.
+This improves maintainability and future extensibility.
 
 ---
 
-## Running Tests
+## No Autonomous Website Changes
 
-Execute the complete test suite with:
+SignalScope AI never edits website content automatically.
 
-```bash
-python -m unittest discover -s tests -v
-```
+Instead, it provides evidence-based recommendations that organisations can implement through their existing teams.
 
-All engines are tested independently before being validated as part of the complete end-to-end workflow.
+This maintains human oversight throughout the optimisation process.
 
 ---
 
-# Example Outputs
+## Evidence-Based Measurement
 
-SignalScope AI generates structured Markdown reports covering:
+Progress reports are generated only when sufficient historical evidence exists.
 
-- audit summaries
-- competitor analysis
-- authority analysis
-- insight reports
-- recommendation reports
-- measurement reports
-
-These outputs are designed to support consultant reviews, internal reporting and future audit comparisons.
+The platform never fabricates improvements simply to create more impressive reports.
 
 ---
+
+# Current Limitations
+
+SignalScope AI is intentionally positioned as a portfolio prototype rather than a production SaaS platform.
+
+Current limitations include:
+
+- single-user execution
+- local processing
+- manual audit execution
+- limited provider support
+- Markdown reporting only
+- no persistent database
+- no web interface
+- no authentication
+- no scheduled monitoring
+
+These limitations were accepted in favour of demonstrating software architecture and engineering quality.
+
+---
+
+# Future Roadmap
+
+Potential future enhancements include:
+
+## Product
+
+- Interactive web dashboard
+- Multi-project management
+- Historical trend visualisation
+- Scheduled GEO monitoring
+- Team collaboration
+- API integrations
+- Cloud deployment
+- Export to PDF and PowerPoint
+
+---
+
+## AI
+
+- Support for additional LLM providers
+- Multi-model comparison
+- Prompt optimisation
+- Confidence scoring
+- Recommendation confidence metrics
+
+---
+
+## Engineering
+
+- Docker deployment
+- CI/CD pipelines
+- Database persistence
+- REST API
+- Authentication
+- User management
+- Containerised deployment
+- Performance optimisation
+
+---
+
+# Portfolio Value
+
+SignalScope AI was developed as a portfolio project demonstrating practical software engineering, AI integration and product thinking.
+
+The project showcases experience across multiple disciplines, including:
+
+- Python development
+- AI application design
+- Modular architecture
+- Prompt engineering
+- Software testing
+- Product strategy
+- Technical documentation
+- Git workflows
+- Version control
+- Business analysis
+
+Rather than focusing solely on technical implementation, the project demonstrates the complete lifecycle of transforming a business problem into a structured software solution.
+
+---
+
+# Lessons Learned
+
+Developing SignalScope AI reinforced several important engineering lessons.
+
+Building with AI requires thoughtful system design rather than simply connecting a language model to an application.
+
+Separating deterministic processing from AI reasoning significantly improves reliability, testing and explainability.
+
+Equally important was recognising that good AI products are not defined by how much AI they contain, but by how effectively AI and traditional software engineering complement one another.
+
+---
+
+# About the Author
+
+SignalScope AI was designed and developed by **Rangoo Rajan** as part of a professional portfolio exploring the intersection of Artificial Intelligence, Marketing Technology, Revenue Operations and Software Engineering.
+
+The project reflects a strong interest in designing practical AI systems that solve genuine business problems through evidence-driven decision making rather than automation for its own sake.
+
+Areas of interest include:
+
+- Artificial Intelligence
+- Marketing Technology
+- Revenue Operations
+- Growth Strategy
+- Automation
+- Product Thinking
+- Data-Driven Decision Making
+
+---
+
+# Acknowledgements
+
+This project was built using the wider Python ecosystem together with Google's Gemini models.
+
+It also benefited from modern software engineering practices including automated testing, modular architecture and Git-based version control.
+
+---
+
+# License
+
+This project is released under the MIT License.
+
+You are free to use, modify and distribute the software in accordance with the terms of the license.
+
+See the accompanying `LICENSE` file for full details.
+
+---
+
+<div align="center">
+
+**SignalScope AI v2.0.0**
+
+*Evidence-Driven Generative Engine Optimisation Intelligence Platform*
+
+Built with Python, AI and a passion for thoughtful software engineering.
+
+</div>
 
