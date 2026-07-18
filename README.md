@@ -1,279 +1,312 @@
-# SignalScope AI
-
 <div align="center">
 
 # 📡 SignalScope AI
 
 ### Evidence-Driven Generative Engine Optimisation (GEO) Intelligence Platform
 
-*Measure AI visibility. Generate actionable insights. Prioritise optimisation. Track improvement.*
+**Measure AI Visibility • Generate Explainable Insights • Prioritise Optimisation • Measure Improvement**
 
 ![Version](https://img.shields.io/badge/version-v2.0.0-blue)
-![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
-![Status](https://img.shields.io/badge/Status-Version%202%20Complete-success)
-![Tests](https://img.shields.io/badge/Tests-270%2B%20Passing-brightgreen)
-![License](https://img.shields.io/badge/License-MIT-lightgrey)
+![Python](https://img.shields.io/badge/python-3.11+-3776AB?logo=python&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-270%2B-brightgreen)
+![Architecture](https://img.shields.io/badge/architecture-modular-orange)
+![Status](https://img.shields.io/badge/status-complete-success)
+
+---
+
+SignalScope AI is an evidence-first GEO intelligence platform that helps organisations understand how Large Language Models (LLMs) such as Google Gemini, ChatGPT and Perplexity represent their brand during AI-powered search experiences.
+
+Instead of attempting to automatically optimise websites, SignalScope AI measures AI visibility, analyses evidence, generates explainable optimisation recommendations and measures improvement over time.
+
+**Version:** 2.0.0
 
 </div>
 
 ---
 
+# Table of Contents
+
+- Executive Summary
+- Why SignalScope AI Exists
+- The GEO Problem
+- Product Overview
+- Project Highlights
+- Quick Start
+- Architecture Overview
+- GEO Workflow
+- Core Engines
+- Repository Structure
+- Installation
+- Running the Project
+- Testing
+- Example Outputs
+- Engineering Philosophy
+- Design Decisions
+- AI Trust Boundaries
+- Limitations
+- Roadmap
+- Portfolio Summary
+- Author
+- License
+
+---
+
 # Executive Summary
 
-SignalScope AI is an evidence-driven **Generative Engine Optimisation (GEO)** intelligence platform designed to help organisations understand how Large Language Models (LLMs) such as **Google Gemini, ChatGPT and Perplexity** represent their brand during AI-powered search experiences.
+Generative AI is changing how customers discover products, services and organisations.
 
-Rather than focusing on traditional search engine rankings, SignalScope AI analyses how AI assistants answer real buyer questions, identifies which competitors are mentioned, determines which sources are influencing AI-generated responses, and converts that evidence into structured business insights and prioritised optimisation recommendations.
+Instead of browsing multiple websites through a traditional search engine, users increasingly ask conversational AI systems questions such as:
 
-The platform follows an evidence-first philosophy:
+> Which CRM should we buy?
 
-> **Measure → Understand → Recommend → Improve → Measure Again**
+> What is the best accounting software for small businesses?
 
-Unlike conventional SEO platforms that optimise for search engine result pages (SERPs), SignalScope AI helps organisations optimise their visibility within AI-generated answers, an increasingly important channel as customers rely more heavily on conversational search.
+> Which cybersecurity company should we choose?
+
+Large Language Models now synthesise information from many sources and generate a single conversational answer.
+
+For organisations this introduces an entirely new optimisation challenge.
+
+Unlike traditional Search Engine Optimisation (SEO), there is currently very little visibility into:
+
+- whether AI mentions a brand,
+- which competitors dominate AI answers,
+- why competitors are recommended,
+- which sources influence AI responses,
+- and whether optimisation efforts improve AI visibility.
+
+SignalScope AI was created to answer these questions through an evidence-driven Generative Engine Optimisation (GEO) workflow.
+
+The platform combines deterministic software engineering with explainable AI reasoning to transform AI-generated responses into structured business intelligence.
+
+Rather than acting as an autonomous optimisation tool, SignalScope AI functions as an intelligence platform that supports consultants, marketers and business leaders in making evidence-based GEO decisions.
 
 ---
 
 # Why SignalScope AI Exists
 
-Artificial Intelligence is fundamentally changing how people discover products, services and businesses.
+Traditional SEO tools were built to analyse search engine result pages.
 
-Instead of searching Google and clicking through multiple websites, users are increasingly asking AI assistants questions such as:
+They answer questions such as:
 
-- *Which CRM is best for a growing SaaS company?*
-- *What is the best accounting software for small businesses?*
-- *Which cybersecurity platform should we consider?*
-- *Who are the leading marketing automation providers?*
+- What keywords rank highest?
+- Which backlinks exist?
+- Which pages receive traffic?
 
-These systems synthesise information from numerous sources and present a single answer or a shortlist of recommendations.
+Generative AI changes this model.
 
-For organisations, this creates a new challenge.
+Large Language Models no longer present a list of links.
 
-Many businesses have invested heavily in Search Engine Optimisation (SEO), yet have little visibility into how AI systems describe their brand, which competitors dominate AI responses, or which sources influence those responses.
+Instead, they generate a single answer that synthesises knowledge from multiple sources.
 
-SignalScope AI was created to provide structured answers to those questions through a transparent, evidence-based workflow.
+This creates several strategic questions that existing SEO platforms cannot fully answer:
 
----
+- Does AI recognise our brand?
+- How often are competitors recommended instead?
+- Which websites influence AI recommendations?
+- Which buyer questions expose weaknesses in our visibility?
+- Are our GEO improvements actually working?
 
-# What SignalScope AI Does
+SignalScope AI was designed to provide transparent, repeatable answers to these questions.
 
-SignalScope AI enables organisations to:
+The platform follows one core principle throughout its architecture:
 
-- Audit how AI systems represent their brand.
-- Measure brand visibility across AI-generated responses.
-- Identify which competitors dominate buyer conversations.
-- Discover which sources AI systems trust.
-- Detect gaps in content coverage and authority.
-- Generate evidence-backed optimisation recommendations.
-- Measure improvement between successive GEO audits.
+> **Evidence before interpretation.**
 
-The platform is intentionally designed as an **intelligence and decision-support system** rather than an automated optimisation tool.
-
-Recommendations are generated from observable evidence, while implementation remains under the control of the organisation, ensuring transparency, auditability and trust.
+Every recommendation produced by the system can be traced back to measurable audit evidence.
 
 ---
 
-# Table of Contents
+# Product Overview
 
-- [The GEO Workflow](#the-geo-workflow)
-- [System Architecture](#system-architecture)
-- [Core Product Components](#core-product-components)
-- [Technology Stack](#technology-stack)
-- [Repository Structure](#repository-structure)
-- [Getting Started](#getting-started)
-- [Running SignalScope AI](#running-signalscope-ai)
-- [Testing](#testing)
-- [Example Outputs](#example-outputs)
-- [Design Principles](#design-principles)
-- [Current Limitations](#current-limitations)
-- [Roadmap](#roadmap)
-- [Author](#author)
+SignalScope AI is built around a modular four-engine architecture.
 
----
+Each engine performs one clearly defined responsibility.
 
-# The GEO Workflow
-
-SignalScope AI follows a simple but evidence-driven workflow that mirrors how a GEO consultant would approach an optimisation engagement.
-
-Rather than attempting to automatically "improve" AI visibility, the platform first measures how AI systems currently represent a brand, explains why that representation exists, recommends evidence-backed improvements, and finally measures whether those improvements have had an effect after implementation.
-
-This creates a repeatable optimisation cycle.
-
-```mermaid
-flowchart TD
-
-A[Client Website & Brand]
-
-A --> B[Audit Engine]
-
-B --> C[Insights Engine]
-
-C --> D[Recommendation Engine]
-
-D --> E[Organisation Implements Changes]
-
-E --> F[Measurement Engine]
-
-F -->|Continuous GEO Optimisation| B
+```text
+Website / Brand
+        │
+        ▼
+Audit Engine
+        │
+        ▼
+Insights Engine
+        │
+        ▼
+Recommendation Engine
+        │
+        ▼
+Organisation Implements Changes
+        │
+        ▼
+Measurement Engine
 ```
 
-The workflow deliberately separates **analysis** from **implementation**.
+This separation improves:
 
-SignalScope AI provides intelligence and decision support, while implementation remains under the control of the organisation.
+- maintainability,
+- explainability,
+- testing,
+- scalability,
+- and future extensibility.
 
-This design improves transparency, prevents unsupported automation, and allows every recommendation to be traced back to observable evidence.
+Rather than allowing AI to perform every task, deterministic Python logic is used wherever objective calculations are required.
 
----
-
-# System Architecture
-
-The platform is organised into four independent engines.
-
-Each engine has a clearly defined responsibility, allowing the system to remain modular, testable and maintainable.
-
-```mermaid
-flowchart LR
-
-Audit["Audit Engine"]
-Insights["Insights Engine"]
-Recommend["Recommendation Engine"]
-Measure["Measurement Engine"]
-
-Audit --> Insights
-Insights --> Recommend
-Recommend --> Measure
-```
-
-Each engine produces structured outputs that become the inputs for the next stage of the workflow.
-
-This architecture avoids tightly coupled components and makes future extensions easier without affecting existing functionality.
+Artificial Intelligence is reserved for tasks that genuinely benefit from reasoning and interpretation.
 
 ---
 
-# Core Product Components
+# Project Highlights
 
-## Audit Engine
+## Business Capabilities
 
-The Audit Engine collects structured evidence by asking AI systems predefined buyer questions.
-
-Its responsibilities include:
-
-- Executing GEO audits.
-- Recording AI-generated responses.
-- Extracting structured evidence.
-- Standardising audit outputs.
-- Preparing datasets for downstream analysis.
-
-The Audit Engine intentionally performs **measurement only**.
-
-It does not attempt to interpret findings or produce recommendations.
-
----
-
-## Insights Engine
-
-The Insights Engine transforms raw audit evidence into deterministic business findings.
-
-Rather than relying on another AI model to interpret every result, the engine calculates measurable observations wherever possible.
-
-Examples include:
-
-- Brand visibility
-- Competitor frequency
+- Evidence-driven GEO audits
+- AI visibility analysis
+- Competitor intelligence
 - Authority source analysis
-- Sentiment distribution
-- Content coverage
-- GEO maturity
+- Explainable recommendations
+- Progress measurement
+- Human-readable reports
 
-The output of this stage becomes a structured collection of findings used throughout the rest of the platform.
+## Engineering Highlights
 
----
-
-## Recommendation Engine
-
-The Recommendation Engine converts validated findings into prioritised optimisation opportunities.
-
-Every recommendation is explicitly linked back to supporting evidence.
-
-Each recommendation contains:
-
-- Recommendation title
-- Business rationale
-- Supporting evidence
-- Recommended action
-- Potential impact
-- Indicative effort
-- Confidence
-- Priority
-- Success metric
-
-This ensures recommendations remain transparent, explainable and evidence-backed.
+- Modular architecture
+- Four independent processing engines
+- 270+ automated tests
+- Deterministic analytics
+- Explainable AI workflow
+- Structured Markdown reporting
+- Git versioned development
 
 ---
 
-## Measurement Engine
+# Quick Start
 
-The Measurement Engine compares two completed GEO audits.
+Clone the repository.
 
-Its purpose is to determine whether optimisation efforts have produced measurable improvements.
+```bash
+git clone https://github.com/YOUR_USERNAME/SignalScope-AI.git
 
-Metrics include:
+cd SignalScope-AI
+```
 
-- Brand visibility
-- Competitor mentions
-- Authority sources
-- Sentiment
-- GEO maturity
-- Content coverage
+Create a virtual environment.
 
-When historical data is unavailable, the engine performs a clearly labelled structural validation instead of generating misleading improvement claims.
+```bash
+python -m venv .venv
+```
+
+Activate the environment.
+
+Windows
+
+```bash
+.venv\Scripts\activate
+```
+
+Linux / macOS
+
+```bash
+source .venv/bin/activate
+```
+
+Install dependencies.
+
+```bash
+pip install -r requirements.txt
+```
+
+Configure your environment.
+
+Create a `.env` file.
+
+```text
+GEMINI_API_KEY=your_api_key_here
+```
+
+Run the complete workflow.
+
+```bash
+python src/run_end_to_end_demo.py
+```
+
+Run all automated tests.
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+---
+
+# Architecture Overview
+
+SignalScope AI follows a modular, pipeline-based architecture where each engine has a single responsibility. Rather than allowing one large AI model to make every decision, deterministic software performs objective analysis while AI is used only where reasoning and interpretation genuinely add value.
+
+```text
+                    ┌────────────────────┐
+                    │   Website / Brand  │
+                    └──────────┬─────────┘
+                               │
+                               ▼
+                    ┌────────────────────┐
+                    │   Audit Engine     │
+                    │────────────────────│
+                    │ Collect Evidence   │
+                    │ Detect Mentions    │
+                    │ Extract Sources    │
+                    │ Score Visibility   │
+                    └──────────┬─────────┘
+                               │
+                               ▼
+                    ┌────────────────────┐
+                    │  Insights Engine   │
+                    │────────────────────│
+                    │ Pattern Discovery  │
+                    │ Competitor Trends  │
+                    │ Opportunity Areas  │
+                    └──────────┬─────────┘
+                               │
+                               ▼
+                    ┌────────────────────┐
+                    │Recommendation Engine│
+                    │────────────────────│
+                    │ Prioritisation     │
+                    │ Business Actions   │
+                    │ GEO Strategy       │
+                    └──────────┬─────────┘
+                               │
+                               ▼
+                    Organisation Implements
+                           Improvements
+                               │
+                               ▼
+                    ┌────────────────────┐
+                    │ Measurement Engine │
+                    │────────────────────│
+                    │ Compare Audits     │
+                    │ Validate Progress  │
+                    │ Generate Reports   │
+                    └────────────────────┘
+```
+
+This modular approach keeps each component independently testable while allowing future engines to be added without rewriting the existing architecture.
 
 ---
 
 # Technology Stack
 
-SignalScope AI has been intentionally designed around a lightweight, modular Python architecture with a strong emphasis on transparency, deterministic processing and maintainability.
-
-Rather than relying on a complex framework, the project favours clear separation of responsibilities between components, allowing each engine to be independently developed, tested and extended.
-
-| Category | Technology | Purpose |
-|-----------|------------|---------|
-| Language | Python 3.11+ | Core application |
-| AI Model | Google Gemini | Structured reasoning and recommendation generation |
-| Testing | unittest | Automated testing |
-| Data Format | JSON | Structured audit and analysis data |
-| Reports | Markdown | Human-readable outputs |
-| Version Control | Git & GitHub | Source control |
-| Development | VS Code | Development environment |
-
----
-
-# Technical Architecture
-
-The platform follows a modular pipeline architecture.
-
-Each engine performs one clearly defined responsibility before passing structured outputs to the next stage.
-
-```text
-Audit Data
-      │
-      ▼
-Insights Engine
-      │
-      ▼
-Recommendation Engine
-      │
-      ▼
-Measurement Engine
-```
-
-Each module is designed to be:
-
-- Independent
-- Testable
-- Deterministic where appropriate
-- Easy to replace or extend
-- Loosely coupled
-
-This architecture allows future functionality to be introduced without requiring major changes to existing components.
+| Category | Technology |
+|-----------|------------|
+| Language | Python 3.11+ |
+| AI Model | Google Gemini |
+| Testing | unittest |
+| Reporting | Markdown |
+| Version Control | Git |
+| Dependency Management | pip |
+| Environment Variables | python-dotenv |
+| Architecture | Modular Pipeline |
+| Development | VS Code |
+| Repository | GitHub |
 
 ---
 
@@ -282,1176 +315,987 @@ This architecture allows future functionality to be introduced without requiring
 ```text
 SignalScope-AI/
 │
-├── audits/
+├── src/
+│   ├── audit_engine/
+│   ├── insights_engine/
+│   ├── recommendation_engine/
+│   ├── measurement_engine/
+│   ├── reporting/
+│   ├── utils/
+│   └── run_end_to_end_demo.py
+│
+├── tests/
+│   ├── audit/
+│   ├── insights/
+│   ├── recommendation/
+│   ├── measurement/
+│   └── integration/
 │
 ├── docs/
 │
-├── reports/
-│   ├── audit_results/
-│   ├── findings/
-│   ├── recommendations/
-│   └── progress/
-│
-├── src/
-│
-├── tests/
+├── outputs/
 │
 ├── requirements.txt
-│
 ├── README.md
-│
-└── .gitignore
+└── .env.example
 ```
 
-The repository has been organised to clearly separate application logic, generated outputs and automated tests.
+The repository has been organised around functional responsibilities rather than file type, making navigation straightforward as the project continues to grow.
 
 ---
 
-# Repository Breakdown
+# End-to-End Workflow
 
-## `/src`
+SignalScope AI follows an evidence-first workflow designed to mirror how a GEO consultant would analyse a brand.
 
-Contains the core application code.
+## Step 1 — Audit
 
-Each major component of SignalScope AI is implemented as an independent module.
+The Audit Engine sends carefully designed prompts to the selected Large Language Model and records the complete responses.
+
+During this stage the platform extracts:
+
+- Brand mentions
+- Competitor mentions
+- Citation sources
+- Recommendation reasoning
+- Response metadata
+- Visibility metrics
+
+No interpretation occurs during this stage.
+
+The objective is simply to collect reliable evidence.
+
+---
+
+## Step 2 — Insights
+
+Once evidence has been collected, the Insights Engine searches for patterns.
+
+Instead of analysing each AI response independently, the engine looks across every response to identify recurring trends.
+
+Typical discoveries include:
+
+- Frequently recommended competitors
+- Missing brand visibility
+- Dominant authority websites
+- Recurring customer questions
+- Industry positioning
+- Common strengths
+- Common weaknesses
+
+The objective is not merely reporting data but converting evidence into business understanding.
+
+---
+
+## Step 3 — Recommendations
+
+After the evidence has been interpreted, the Recommendation Engine generates prioritised improvement opportunities.
+
+Recommendations are grouped according to their expected business value.
 
 Examples include:
 
-- Audit processing
-- Findings analysis
-- Recommendation generation
-- Measurement engine
-- Shared utility functions
+- Improve product comparison content
+- Increase authoritative citations
+- Publish missing topical content
+- Strengthen expertise signals
+- Improve structured information
+- Enhance trust indicators
 
-The source code intentionally follows a modular structure to minimise dependencies between components.
+Each recommendation references supporting audit evidence to maintain explainability.
 
----
-
-## `/tests`
-
-Contains the automated unit test suite.
-
-The project follows a testing-first mindset, with each engine accompanied by dedicated test cases covering expected behaviour, validation rules and edge cases.
-
-By Version 2.0.0 the project contains **270+ automated tests**, providing confidence that new changes do not unintentionally break existing functionality.
+The platform deliberately avoids making unsupported optimisation claims.
 
 ---
 
-## `/reports`
+## Step 4 — Implementation
 
-Stores all human-readable outputs generated by the application.
+SignalScope AI intentionally stops after producing recommendations.
 
-Typical reports include:
+The platform does not automatically modify websites.
 
-- GEO Findings
-- GEO Recommendations
-- GEO Progress Reports
+Instead, organisations implement the recommended improvements through their existing content, SEO or development teams.
 
-Markdown was selected because it is lightweight, portable and renders cleanly on GitHub.
+This design decision keeps the platform focused on intelligence rather than automation.
 
 ---
 
-## `/audits`
+## Step 5 — Measurement
 
-Stores structured audit datasets captured during GEO analysis.
+After improvements have been implemented, a second audit can be performed.
 
-These datasets form the evidence base used throughout the rest of the workflow.
+The Measurement Engine compares the previous and current audits to identify genuine changes.
 
-Rather than generating recommendations directly from AI conversations, SignalScope AI first standardises audit evidence before performing analysis.
+Rather than assuming improvements occurred, every reported change must be supported by measurable evidence.
 
-This improves reproducibility and transparency.
+If only a single audit exists, the engine reports that historical comparison is unavailable rather than generating speculative conclusions.
 
----
+This reflects one of the core engineering principles of the project:
 
-## `/docs`
-
-Contains supporting documentation, design notes and future technical documentation.
-
-Keeping supporting material separate from application code helps maintain a clean repository structure.
+> Never invent evidence.
 
 ---
 
-# Engineering Philosophy
+# Core Engines
 
-SignalScope AI was developed around several engineering principles.
+SignalScope AI consists of four independent engines that together create the complete GEO workflow.
 
-### Evidence before interpretation
-
-Recommendations should always be traceable back to observable evidence.
-
----
-
-### Deterministic where possible
-
-Calculations such as visibility scoring, frequency counts and maturity assessments should be deterministic rather than generated by an LLM.
-
----
-
-### AI where judgement adds value
-
-Large Language Models are used where interpretation, summarisation or reasoning provides genuine value, rather than replacing deterministic calculations.
-
----
-
-### Separation of concerns
-
-Each engine performs one primary responsibility.
-
-This makes the system easier to understand, test and extend.
-
----
-
-### Explainability
-
-Every recommendation produced by the platform can be linked back to supporting findings and audit evidence.
-
-This improves trust in the generated outputs and reduces the risk of unsupported recommendations.
-
----
-
-# Engine Deep Dive
-
-SignalScope AI is built around four independent processing engines.
-
-Each engine performs a single responsibility within the overall GEO workflow and passes structured outputs to the next stage.
-
-This modular architecture improves maintainability, simplifies testing and allows future enhancements without affecting the rest of the platform.
+Each engine performs a single responsibility, making the application easier to maintain, test and extend.
 
 ---
 
 # Audit Engine
 
-## Purpose
+The Audit Engine forms the foundation of SignalScope AI.
 
-The Audit Engine is responsible for collecting structured evidence from AI-powered search systems.
+Every downstream insight, recommendation and measurement depends upon the quality of the evidence collected during this stage.
 
-It represents the starting point of every GEO assessment.
+For that reason, the Audit Engine deliberately performs **data collection rather than interpretation**.
 
-Rather than attempting to analyse or optimise anything, the Audit Engine focuses exclusively on collecting accurate, repeatable evidence.
+Its primary responsibility is to ask structured GEO prompts, capture the complete responses generated by the selected Large Language Model and transform those responses into structured audit data.
+
+By separating evidence collection from interpretation, the system reduces bias and ensures every subsequent conclusion can be traced back to measurable observations.
 
 ---
 
 ## Responsibilities
 
-- Execute predefined buyer-question prompts.
-- Capture AI-generated responses.
-- Identify brand mentions.
-- Identify competitor mentions.
-- Extract referenced sources.
-- Record sentiment indicators.
-- Store structured audit data.
+The Audit Engine is responsible for:
+
+- Executing GEO prompts
+- Capturing complete LLM responses
+- Extracting brand mentions
+- Identifying competitor mentions
+- Recording authority sources
+- Measuring visibility metrics
+- Producing structured audit outputs
+
+No optimisation recommendations are generated during this stage.
 
 ---
 
-## Inputs
+## Audit Pipeline
 
-The Audit Engine accepts:
-
-- Target company or brand
-- Website URL
-- Buyer question set
-- Audit configuration
-
----
-
-## Outputs
-
-The engine produces structured audit datasets containing:
-
-- AI response text
-- Brand visibility
-- Competitor visibility
-- Referenced websites
-- Supporting metadata
-
-These outputs become the evidence base used throughout the remainder of the platform.
+```text
+User Input
+      │
+      ▼
+Prompt Generation
+      │
+      ▼
+LLM Response
+      │
+      ▼
+Response Parsing
+      │
+      ▼
+Evidence Extraction
+      │
+      ▼
+Structured Audit
+```
 
 ---
 
-## Design Decision
+## Evidence Collected
 
-The Audit Engine intentionally performs **measurement only**.
+Each audit records multiple categories of information.
 
-No interpretation or recommendations occur at this stage.
+### Brand Visibility
 
-Separating data collection from interpretation ensures that downstream analysis always works from observable evidence rather than assumptions.
+The engine identifies whether the audited organisation is mentioned within AI-generated responses.
+
+Metrics include:
+
+- Mention frequency
+- Relative prominence
+- Position within responses
+- Overall visibility
+
+---
+
+### Competitor Visibility
+
+Competitor mentions are extracted separately to allow comparative analysis.
+
+This enables organisations to understand:
+
+- Which competitors dominate conversations
+- Which competitors appear alongside the brand
+- Which competitors consistently outperform visibility
+
+---
+
+### Citation Sources
+
+Where available, the engine records external sources referenced by the model.
+
+Typical examples include:
+
+- Official company websites
+- Wikipedia
+- Industry publications
+- Government websites
+- Documentation
+- Review platforms
+
+These sources later become an important input for recommendation generation.
+
+---
+
+### Response Metadata
+
+The engine also records metadata required for later comparison, including:
+
+- Prompt identifier
+- Timestamp
+- Audit identifier
+- Response length
+- Processing status
+
+---
+
+## Design Principles
+
+The Audit Engine follows several engineering principles.
+
+### Deterministic Extraction
+
+Objective information is extracted using deterministic Python logic wherever possible.
+
+This improves repeatability and makes testing significantly easier.
+
+---
+
+### AI Independence
+
+The Audit Engine does not ask the language model to interpret its own answers.
+
+Instead, it simply captures the evidence.
+
+Interpretation occurs later inside the Insights Engine.
+
+---
+
+### Reproducibility
+
+Running the same audit with identical inputs should produce consistent structured outputs, subject to the natural variability of LLM responses.
+
+The architecture therefore separates:
+
+- evidence collection
+- evidence interpretation
+- recommendation generation
+
+into independent processing stages.
 
 ---
 
 # Insights Engine
 
-## Purpose
+Once the audit has been completed, SignalScope AI begins analysing the collected evidence.
 
-The Insights Engine transforms raw audit evidence into meaningful business findings.
+Unlike the Audit Engine, which focuses solely on recording observations, the Insights Engine searches for meaningful patterns across the complete dataset.
 
-Its role is to answer questions such as:
-
-- How visible is the brand?
-- Which competitors dominate?
-- Which sources influence AI responses?
-- What themes appear consistently?
-- How mature is the organisation's GEO presence?
+Its purpose is to transform raw evidence into business intelligence.
 
 ---
 
 ## Responsibilities
 
-- Aggregate audit results.
-- Calculate deterministic metrics.
-- Identify recurring patterns.
-- Produce structured findings.
-- Estimate GEO maturity.
+The Insights Engine identifies:
+
+- recurring trends
+- competitive positioning
+- topical gaps
+- authority patterns
+- customer intent
+- strategic opportunities
+
+Rather than analysing a single response in isolation, the engine evaluates the audit as a whole.
 
 ---
 
-## Inputs
+## Processing Pipeline
 
-- Completed audit dataset
-
----
-
-## Outputs
-
-The engine produces a collection of structured findings.
-
-Each finding contains:
-
-- Title
-- Value
-- Supporting evidence
-- Confidence
-
-These findings are intentionally factual.
-
-They explain what the platform observed rather than recommending what should happen next.
+```text
+Audit Results
+      │
+      ▼
+Evidence Aggregation
+      │
+      ▼
+Pattern Detection
+      │
+      ▼
+Opportunity Identification
+      │
+      ▼
+Business Insights
+```
 
 ---
 
-## Design Decision
+## Types of Insights
 
-Wherever possible, findings are calculated using deterministic Python logic rather than another AI model.
+### Brand Position
 
-This improves consistency, reproducibility and trust.
+The engine evaluates how consistently the organisation appears across multiple AI responses.
 
-Large Language Models are reserved for tasks that genuinely require interpretation.
+Questions include:
+
+- Is the brand recognised?
+- Is it recommended?
+- Is it mentioned only occasionally?
+- Is it completely absent?
+
+---
+
+### Competitive Landscape
+
+SignalScope AI identifies which competitors dominate AI-generated recommendations.
+
+This provides valuable context for GEO strategy by highlighting organisations currently receiving the greatest visibility.
+
+---
+
+### Authority Analysis
+
+The engine analyses the authority sources appearing throughout responses.
+
+Patterns frequently emerge regarding which websites AI systems appear to trust for specific industries.
+
+These findings often influence later recommendation generation.
+
+---
+
+### Content Opportunities
+
+The engine identifies recurring questions that are not adequately answered by the audited organisation.
+
+These represent opportunities for future GEO-focused content development.
+
+---
+
+### Strategic Themes
+
+Rather than producing hundreds of disconnected observations, related findings are grouped into higher-level themes.
+
+Examples include:
+
+- weak authority signals
+- missing educational content
+- limited comparison pages
+- inconsistent expertise indicators
+- low brand familiarity
+
+Grouping related findings improves readability while reducing information overload.
+
+---
+
+## Engineering Approach
+
+The Insights Engine deliberately combines deterministic analytics with AI reasoning.
+
+Objective calculations remain within Python.
+
+Interpretative summaries are generated only after the supporting evidence has been collected.
+
+This separation improves explainability while reducing the risk of unsupported conclusions.
 
 ---
 
 # Recommendation Engine
 
-## Purpose
+The Recommendation Engine converts analytical findings into prioritised business actions.
 
-The Recommendation Engine converts validated findings into prioritised optimisation opportunities.
+Unlike traditional SEO tools that simply report issues, SignalScope AI explains what should be improved and why.
 
-Rather than generating generic marketing advice, recommendations are grounded in observable evidence collected during the audit.
+Every recommendation is linked to evidence generated during previous stages.
+
+This evidence-first approach ensures recommendations remain transparent and defensible.
 
 ---
 
 ## Responsibilities
 
-- Analyse structured findings.
-- Generate optimisation opportunities.
-- Explain why each recommendation exists.
-- Prioritise recommendations.
-- Estimate business impact.
-- Estimate implementation effort.
+The Recommendation Engine is responsible for:
+
+- Prioritising optimisation opportunities
+- Translating analytical findings into business actions
+- Grouping related recommendations
+- Explaining the reasoning behind each recommendation
+- Maintaining complete traceability to audit evidence
+
+The engine intentionally avoids producing generic SEO advice.
+
+Instead, every recommendation is derived from the specific findings of the current audit.
 
 ---
 
-## Inputs
+## Recommendation Pipeline
 
-- Structured findings generated by the Insights Engine.
-
----
-
-## Outputs
-
-Each recommendation contains:
-
-- Recommendation title
-- Problem addressed
-- Recommendation rationale
-- Recommended action
-- Supporting evidence
-- Potential impact
-- Indicative effort
-- Confidence
-- Priority
-- Success metric
+```text
+Insights
+     │
+     ▼
+Opportunity Detection
+     │
+     ▼
+Impact Assessment
+     │
+     ▼
+Priority Ranking
+     │
+     ▼
+Business Recommendations
+```
 
 ---
 
-## Design Decision
+## Recommendation Categories
 
-Recommendations never exist in isolation.
+Recommendations are organised into logical themes to improve readability and implementation.
 
-Every recommendation must be traceable back to one or more findings generated during the previous stage.
+### Content Improvements
 
-This evidence-first philosophy improves transparency and allows users to understand exactly why a recommendation was produced.
+Examples include:
+
+- Create missing educational content
+- Expand comparison pages
+- Improve topical coverage
+- Address unanswered customer questions
+
+---
+
+### Authority Improvements
+
+Examples include:
+
+- Increase citations from authoritative sources
+- Improve trust signals
+- Publish expert-led content
+- Strengthen evidence supporting expertise
+
+---
+
+### Brand Visibility
+
+Examples include:
+
+- Improve consistency of messaging
+- Increase topical relevance
+- Strengthen entity recognition
+- Improve brand differentiation
+
+---
+
+### Technical Improvements
+
+Where appropriate, the engine may recommend:
+
+- Structured data enhancements
+- Better information architecture
+- Clearer product descriptions
+- Improved accessibility of important content
+
+---
+
+## Prioritisation Strategy
+
+Not every recommendation delivers the same business value.
+
+SignalScope AI therefore assigns priorities based on:
+
+- expected impact
+- supporting evidence
+- implementation complexity
+- strategic importance
+
+This allows organisations to focus their efforts where improvements are most likely to influence AI visibility.
+
+---
+
+## Explainability
+
+Every recommendation is supported by audit findings.
+
+Rather than producing statements such as:
+
+> Improve authority.
+
+SignalScope AI instead explains why the recommendation exists.
+
+For example:
+
+- Competitors were cited in 8 of 10 responses.
+- The audited organisation appeared only twice.
+- Government and industry sources dominated citations.
+- No evidence of expert content was identified.
+
+This approach improves trust while making recommendations easier to justify to stakeholders.
 
 ---
 
 # Measurement Engine
 
-## Purpose
+The Measurement Engine closes the GEO improvement loop.
 
-The Measurement Engine determines whether optimisation activities have produced measurable improvements over time.
+After recommendations have been implemented, organisations can run another audit and compare the results against previous evidence.
 
-Rather than claiming success automatically, the engine compares two completed GEO audits.
+The objective is not simply to report differences but to determine whether meaningful progress has occurred.
 
 ---
 
 ## Responsibilities
 
-- Compare audit datasets.
-- Measure change.
-- Highlight improvement.
-- Detect regression.
-- Produce comparison reports.
+The Measurement Engine performs:
+
+- audit comparison
+- visibility comparison
+- competitor comparison
+- citation comparison
+- recommendation validation
+- improvement reporting
 
 ---
 
-## Inputs
+## Measurement Workflow
 
-- Baseline audit
-- Follow-up audit
-
----
-
-## Outputs
-
-Comparison metrics include:
-
-- Brand visibility
-- Competitor mentions
-- Authority sources
-- Sentiment
-- GEO maturity
-- Content coverage
-
-The resulting report provides an evidence-based assessment of change between audit cycles.
+```text
+Previous Audit
+        │
+        ├────────────┐
+        │            │
+        ▼            ▼
+Current Audit   Structural Validation
+        │            │
+        └──────┬─────┘
+               ▼
+Comparison Engine
+               │
+               ▼
+Improvement Report
+```
 
 ---
 
 ## Structural Validation
 
-When only a single audit is available, the engine performs a structural validation instead of calculating improvements.
+One of the defining features of Version 2 is structural validation.
 
-This prevents misleading conclusions while still validating that the comparison pipeline functions correctly.
+Before generating comparisons, the engine verifies that sufficient historical evidence exists.
 
----
+If only one audit is available, SignalScope AI reports that historical comparison cannot yet be performed.
 
-# End-to-End Data Flow
+The platform intentionally avoids manufacturing improvements where no previous evidence exists.
 
-The four engines operate sequentially.
+This behaviour reflects the project's guiding principle:
 
-```mermaid
-flowchart LR
-
-A[Website & Brand]
-
-A --> B[Audit Engine]
-
-B --> C[Structured Audit Data]
-
-C --> D[Insights Engine]
-
-D --> E[Structured Findings]
-
-E --> F[Recommendation Engine]
-
-F --> G[Prioritised Recommendations]
-
-G --> H[Organisation Implements Changes]
-
-H --> I[Follow-up Audit]
-
-I --> J[Measurement Engine]
-
-J --> K[Progress Report]
-```
-
-Each stage produces structured outputs that become the inputs for the next engine.
-
-This pipeline architecture creates clear boundaries between responsibilities while making the system easier to maintain, extend and test.
+> Evidence should always take precedence over assumption.
 
 ---
 
-# Why This Architecture?
+## Comparison Categories
 
-Several architectural approaches were considered during development.
+When multiple audits exist, the Measurement Engine evaluates:
 
-The final design was chosen because it provides:
+### Brand Visibility
 
-- Clear separation of concerns.
-- Strong evidence traceability.
-- High testability.
-- Modular components.
-- Reduced coupling between engines.
-- Easier future expansion.
-
-Most importantly, it ensures that recommendations are never disconnected from the evidence that generated them.
-
-This principle underpins the entire philosophy of SignalScope AI.
-
-# Getting Started
-
-This section explains how to install, configure and run SignalScope AI locally.
-
-The project has been designed to be lightweight, requiring only Python and a small number of dependencies.
+- Increased mentions
+- Reduced mentions
+- Stable visibility
 
 ---
 
-# Prerequisites
+### Competitor Visibility
 
-Before running SignalScope AI, ensure the following software is installed:
-
-| Requirement | Version |
-|------------|---------|
-| Python | 3.11 or later |
-| Git | Latest |
-| Google Gemini API Key | Required |
-| pip | Latest |
-
-It is recommended to use a virtual environment to isolate project dependencies.
+- Competitors gaining visibility
+- Competitors losing visibility
+- Newly emerging competitors
 
 ---
 
-# Clone the Repository
+### Authority Sources
 
-```bash
-git clone https://github.com/YOUR_USERNAME/SignalScope-AI.git
+The engine evaluates whether citation patterns have changed over time.
 
-cd SignalScope-AI
-```
+Examples include:
 
----
-
-# Create a Virtual Environment
-
-### Windows
-
-```bash
-python -m venv .venv
-
-.venv\Scripts\activate
-```
-
-### macOS / Linux
-
-```bash
-python3 -m venv .venv
-
-source .venv/bin/activate
-```
+- additional authoritative sources
+- reduced dependency on weaker sources
+- improved diversity of citations
 
 ---
 
-# Install Dependencies
+### Recommendation Progress
 
-```bash
-pip install -r requirements.txt
-```
+Recommendations generated during previous audits can be reviewed alongside current evidence.
 
----
+This enables organisations to determine:
 
-# Configure Environment Variables
-
-Create a `.env` file in the project root.
-
-Example:
-
-```text
-GEMINI_API_KEY=your_api_key_here
-```
-
-> **Important:** Never commit API keys or other secrets to GitHub. The `.env` file should remain excluded via `.gitignore`.
+- which improvements were implemented
+- which recommendations remain relevant
+- where additional work is required
 
 ---
 
-# Running SignalScope AI
+# Reporting
 
-The project can be executed as a complete end-to-end workflow or by running each engine independently.
+Every engine contributes towards producing clear, human-readable reports.
 
----
+SignalScope AI deliberately favours Markdown output because it is:
 
-## Option 1 – Run the Complete Workflow
+- portable
+- version controllable
+- easy to review
+- compatible with GitHub
+- suitable for consultants
+- suitable for business stakeholders
 
-```bash
-python src/run_end_to_end_demo.py
-```
-
-This executes the complete GEO pipeline:
-
-1. Load audit data.
-2. Generate findings.
-3. Generate recommendations.
-4. Produce measurement reports.
-5. Export Markdown reports.
+Reports are designed to be understandable by both technical and non-technical audiences.
 
 ---
 
-## Option 2 – Run Individual Engines
+# Testing
 
-### Audit Engine
+Software quality was treated as a first-class requirement throughout development.
 
-```bash
-python src/audit_engine.py
-```
+Rather than relying solely on manual testing, SignalScope AI includes an extensive automated testing suite covering both individual components and complete workflows.
 
 ---
 
-### Insights Engine
+## Test Coverage
 
-```bash
-python src/geo_findings_analyzer.py
-```
+The project contains over **270 automated tests**, including:
 
----
+- unit tests
+- integration tests
+- parser tests
+- engine tests
+- reporting tests
+- measurement validation
+- regression tests
 
-### Recommendation Engine
-
-```bash
-python src/recommendation_engine.py
-```
-
----
-
-### Measurement Engine
-
-```bash
-python src/measurement_engine.py
-```
-
-Running engines independently is useful during development, debugging and future feature expansion.
+The objective is to ensure future development can occur with confidence while reducing the likelihood of introducing regressions.
 
 ---
 
-# Running the Test Suite
+## Running Tests
 
-SignalScope AI includes a comprehensive automated test suite.
-
-Run every test with:
+Execute the complete test suite with:
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-A successful execution should complete without failures.
-
-Example output:
-
-```text
-----------------------------------------------------------------------
-Ran 270+ tests
-
-OK
-```
-
-The extensive test suite helps ensure that new features do not unintentionally break existing functionality.
-
----
-
-# Generated Outputs
-
-Running the complete workflow produces several Markdown reports.
-
-Typical outputs include:
-
-| Report | Purpose |
-|---------|---------|
-| GEO Findings | Deterministic business findings derived from audit evidence |
-| GEO Recommendations | Prioritised optimisation recommendations |
-| GEO Progress | Measurement report comparing audit runs |
-
-These reports are designed to be easily shared with stakeholders or incorporated into broader GEO consulting engagements.
-
----
-
-# Troubleshooting
-
-## Missing API Key
-
-If the application reports authentication errors, verify that the `GEMINI_API_KEY` environment variable has been correctly configured.
-
----
-
-## Dependency Issues
-
-Ensure all required packages have been installed by running:
-
-```bash
-pip install -r requirements.txt
-```
-
----
-
-## Python Version
-
-SignalScope AI has been developed using **Python 3.11+**.
-
-Older versions of Python may not support all language features used within the project.
-
----
-
-## Test Failures
-
-If automated tests fail after making code changes:
-
-1. Review the failing test output.
-2. Verify recent modifications.
-3. Re-run the affected module.
-4. Ensure no generated report files have been manually edited.
-
----
-
-# Development Workflow
-
-The recommended development workflow is:
-
-```text
-Modify Code
-      │
-      ▼
-Run Tests
-      │
-      ▼
-Generate Reports
-      │
-      ▼
-Review Outputs
-      │
-      ▼
-Commit Changes
-```
-
-This workflow encourages small, testable iterations while maintaining confidence in the integrity of the system.
+All engines are tested independently before being validated as part of the complete end-to-end workflow.
 
 ---
 
 # Example Outputs
 
-SignalScope AI produces a series of structured Markdown reports that guide organisations through the complete GEO optimisation lifecycle.
+SignalScope AI generates structured Markdown reports covering:
 
-Each report has a distinct purpose within the overall workflow.
+- audit summaries
+- competitor analysis
+- authority analysis
+- insight reports
+- recommendation reports
+- measurement reports
+
+These outputs are designed to support consultant reviews, internal reporting and future audit comparisons.
 
 ---
 
-# 1. GEO Findings Report
+## Responsibilities
 
-The Findings Report summarises the measurable observations extracted from the audit dataset.
+The Recommendation Engine is responsible for:
 
-Rather than offering recommendations, this report focuses exclusively on presenting evidence.
+- Prioritising optimisation opportunities
+- Translating analytical findings into business actions
+- Grouping related recommendations
+- Explaining the reasoning behind each recommendation
+- Maintaining complete traceability to audit evidence
 
-Typical findings include:
+The engine intentionally avoids producing generic SEO advice.
 
-- Brand visibility
-- Competitor visibility
-- Authority sources
-- Sentiment distribution
-- Content coverage
-- GEO maturity
+Instead, every recommendation is derived from the specific findings of the current audit.
 
-Example:
+---
+
+## Recommendation Pipeline
 
 ```text
-Brand Visibility
-──────────────────────────
-Visible in 68% of buyer questions.
-
-Confidence:
-High
-
-Evidence:
-Brand mentioned in 17 of 25 responses.
-```
-
----
-
-# 2. GEO Recommendations Report
-
-Recommendations are generated from validated findings.
-
-Every recommendation is linked directly to the evidence that produced it.
-
-Example:
-
-```text
-Recommendation
-
-Improve comparison content for CRM implementation services.
-
-Why?
-
-Competitors were consistently referenced for implementation guidance while the audited brand was rarely cited.
-
-Potential Impact
-
-High
-
-Indicative Effort
-
-Medium
-
-Supporting Evidence
-
-Competitor mentioned in 14 buyer questions.
-Brand mentioned in only 4.
-```
-
-This evidence-first approach prevents recommendations from becoming generic marketing advice.
-
----
-
-# 3. GEO Progress Report
-
-The Progress Report compares two completed GEO audits.
-
-Its purpose is to determine whether optimisation activities have produced measurable improvements.
-
-Typical comparison metrics include:
-
-- Brand visibility
-- Competitor mentions
-- Authority sources
-- Sentiment
-- Content coverage
-- GEO maturity
-
-Example:
-
-```text
-Brand Visibility
-
-Baseline:
-64%
-
-Current:
-79%
-
-Change:
-+15%
-
-Direction:
-Improved
-```
-
-When historical audit data is unavailable, SignalScope AI performs a structural validation instead of generating misleading improvement claims.
-
----
-
-# Report Pipeline
-
-```mermaid
-flowchart LR
-
-Audit["Audit Data"]
-
-Audit --> Findings["GEO Findings"]
-
-Findings --> Recommendations["Recommendations"]
-
-Recommendations --> Implementation["Organisation Implements Changes"]
-
-Implementation --> Progress["Measurement Report"]
-```
-
----
-
-# Screenshots
-
-The following screenshots illustrate the outputs produced by SignalScope AI.
-
-> **Note:** Replace these placeholders with screenshots from your repository once available.
-
-## GEO Findings
-
-```
-docs/screenshots/findings-report.png
-```
-
----
-
-## GEO Recommendations
-
-```
-docs/screenshots/recommendations-report.png
-```
-
----
-
-## GEO Progress
-
-```
-docs/screenshots/progress-report.png
-```
-
----
-
-## Test Suite
-
-```
-docs/screenshots/test-suite.png
-```
-
----
-
-## End-to-End Demo
-
-```
-docs/screenshots/demo.png
-```
-
----
-
-# Output Philosophy
-
-SignalScope AI deliberately produces **human-readable Markdown reports** instead of proprietary binary formats.
-
-This provides several advantages:
-
-- Easy to version control
-- Easy to review in GitHub
-- Easy to share with stakeholders
-- Portable across platforms
-- Simple to convert into PDFs or presentations
-- Transparent and auditable
-
-The reports are intended to support consultants, marketers, RevOps teams and business leaders by turning AI search evidence into actionable business intelligence.
-
----
-
-# Design Decisions
-
-SignalScope AI was not designed simply to generate AI-powered recommendations. Instead, the project was built around a series of deliberate architectural decisions intended to maximise transparency, maintainability and trust.
-
-This section explains the reasoning behind those decisions.
-
----
-
-## Evidence Before Intelligence
-
-One of the earliest design decisions was that recommendations should never be produced directly from raw AI conversations.
-
-Instead, the platform follows a staged process:
-
-```text
-Evidence
-    ↓
 Insights
-    ↓
-Recommendations
-    ↓
-Measurement
+     │
+     ▼
+Opportunity Detection
+     │
+     ▼
+Impact Assessment
+     │
+     ▼
+Priority Ranking
+     │
+     ▼
+Business Recommendations
 ```
 
-This ensures every recommendation can be traced back to observable evidence.
+---
 
-The result is a system that is significantly easier to validate, debug and explain.
+## Recommendation Categories
+
+Recommendations are organised into logical themes to improve readability and implementation.
+
+### Content Improvements
+
+Examples include:
+
+- Create missing educational content
+- Expand comparison pages
+- Improve topical coverage
+- Address unanswered customer questions
 
 ---
 
-## Why Four Independent Engines?
+### Authority Improvements
 
-Rather than building one large application that performs every task, SignalScope AI separates responsibilities into four specialised engines.
+Examples include:
 
-Each engine has a single responsibility:
-
-| Engine | Responsibility |
-|---------|----------------|
-| Audit | Collect evidence |
-| Insights | Explain the evidence |
-| Recommendations | Prioritise actions |
-| Measurement | Measure change |
-
-This separation provides several advantages:
-
-- Easier testing
-- Better maintainability
-- Clearer architecture
-- Simpler future expansion
-- Reduced coupling
+- Increase citations from authoritative sources
+- Improve trust signals
+- Publish expert-led content
+- Strengthen evidence supporting expertise
 
 ---
 
-## Deterministic Logic vs AI Reasoning
+### Brand Visibility
 
-Large Language Models are exceptionally good at reasoning over complex information.
+Examples include:
 
-However, they are not ideal for deterministic calculations.
-
-For this reason, SignalScope AI intentionally divides responsibilities.
-
-Python performs tasks such as:
-
-- counting
-- aggregation
-- scoring
-- frequency analysis
-- comparisons
-- maturity calculations
-
-The AI model performs tasks such as:
-
-- summarisation
-- interpretation
-- recommendation generation
-- explanation
-
-This hybrid architecture combines the reliability of deterministic software with the flexibility of modern AI systems.
+- Improve consistency of messaging
+- Increase topical relevance
+- Strengthen entity recognition
+- Improve brand differentiation
 
 ---
 
-## Recommendations Must Be Explainable
+### Technical Improvements
 
-One of the primary goals of the project is explainability.
+Where appropriate, the engine may recommend:
 
-Every recommendation must answer three questions:
-
-1. Why was this generated?
-2. What evidence supports it?
-3. How could success be measured?
-
-Recommendations without supporting evidence are intentionally rejected.
-
-This design improves user trust and encourages evidence-based decision making.
+- Structured data enhancements
+- Better information architecture
+- Clearer product descriptions
+- Improved accessibility of important content
 
 ---
 
-## Modular by Design
+## Prioritisation Strategy
 
-Every engine communicates using structured outputs rather than tightly coupled internal logic.
+Not every recommendation delivers the same business value.
 
-This makes future enhancements straightforward.
+SignalScope AI therefore assigns priorities based on:
 
-For example, future versions could replace the Recommendation Engine with another model without requiring changes to the Audit or Insights engines.
+- expected impact
+- supporting evidence
+- implementation complexity
+- strategic importance
 
----
-
-## Measurement Over Assumption
-
-Many AI applications claim improvement without demonstrating measurable change.
-
-SignalScope AI deliberately avoids this.
-
-Improvement is only reported when two comparable audit datasets exist.
-
-If historical data is unavailable, the platform performs a structural validation rather than generating misleading claims.
-
-This reflects the broader philosophy of the project:
-
-> **Evidence should always take precedence over assumption.**
+This allows organisations to focus their efforts where improvements are most likely to influence AI visibility.
 
 ---
 
-# AI Trust Boundaries
+## Explainability
 
-SignalScope AI intentionally limits where AI is allowed to make decisions.
+Every recommendation is supported by audit findings.
 
-| Activity | Python | AI |
-|----------|:------:|:--:|
-| Count mentions | ✅ | |
-| Compare datasets | ✅ | |
-| Calculate maturity | ✅ | |
-| Summarise findings | | ✅ |
-| Generate recommendations | | ✅ |
-| Explain business implications | | ✅ |
+Rather than producing statements such as:
 
-This separation increases reliability while reducing the likelihood of inconsistent outputs.
+> Improve authority.
 
----
+SignalScope AI instead explains why the recommendation exists.
 
-# Key Principles
+For example:
 
-The development of SignalScope AI was guided by five principles.
+- Competitors were cited in 8 of 10 responses.
+- The audited organisation appeared only twice.
+- Government and industry sources dominated citations.
+- No evidence of expert content was identified.
 
-### Transparency
-
-Every recommendation should be explainable.
+This approach improves trust while making recommendations easier to justify to stakeholders.
 
 ---
 
-### Evidence
+# Measurement Engine
 
-Evidence should always come before interpretation.
+The Measurement Engine closes the GEO improvement loop.
 
----
+After recommendations have been implemented, organisations can run another audit and compare the results against previous evidence.
 
-### Simplicity
-
-Each engine should perform one responsibility well.
+The objective is not simply to report differences but to determine whether meaningful progress has occurred.
 
 ---
 
-### Maintainability
+## Responsibilities
 
-Modules should be replaceable without affecting the remainder of the platform.
+The Measurement Engine performs:
 
----
-
-### Trust
-
-Users should understand not only **what** the platform recommends but **why** it recommends it.
-
-These principles influenced every architectural decision throughout the development of Version 2.0.0.
-
----
-
-# Current Limitations
-
-SignalScope AI Version 2.0.0 represents a complete end-to-end GEO intelligence workflow. However, like any software project, it has defined boundaries and opportunities for future development.
-
-The current version intentionally focuses on providing accurate, transparent and evidence-driven GEO analysis rather than attempting to solve every possible optimisation challenge.
-
-The following limitations are known and have been accepted as design decisions for Version 2.0.0.
+- audit comparison
+- visibility comparison
+- competitor comparison
+- citation comparison
+- recommendation validation
+- improvement reporting
 
 ---
 
-## Single AI Provider
+## Measurement Workflow
 
-The current implementation has been developed around **Google Gemini**.
-
-Although the overall architecture is provider-agnostic, support for additional Large Language Models has not yet been implemented.
-
-Potential future integrations include:
-
-- OpenAI ChatGPT
-- Anthropic Claude
-- Perplexity AI
-- Microsoft Copilot
-- Meta AI
-
-Supporting multiple providers would enable richer comparisons across different AI ecosystems.
-
----
-
-## Single Audit Demonstration
-
-The repository currently contains a demonstration audit used to validate the complete processing pipeline.
-
-While the Measurement Engine fully supports before-and-after comparisons, a genuine longitudinal dataset is required to demonstrate real optimisation improvements over time.
-
-The current structural validation confirms that the comparison workflow functions correctly without generating misleading claims.
+```text
+Previous Audit
+        │
+        ├────────────┐
+        │            │
+        ▼            ▼
+Current Audit   Structural Validation
+        │            │
+        └──────┬─────┘
+               ▼
+Comparison Engine
+               │
+               ▼
+Improvement Report
+```
 
 ---
 
-## Manual Implementation
+## Structural Validation
 
-SignalScope AI deliberately stops after producing recommendations.
+One of the defining features of Version 2 is structural validation.
 
-The platform identifies optimisation opportunities but does not automatically modify websites, content or third-party platforms.
+Before generating comparisons, the engine verifies that sufficient historical evidence exists.
 
-This is an intentional product decision.
+If only one audit is available, SignalScope AI reports that historical comparison cannot yet be performed.
 
-Human review remains essential before implementing strategic changes.
+The platform intentionally avoids manufacturing improvements where no previous evidence exists.
 
----
+This behaviour reflects the project's guiding principle:
 
-## Limited Visualisation
-
-Version 2.0.0 produces structured Markdown reports designed for transparency and portability.
-
-Future versions could include interactive dashboards for richer exploration of audit results and historical trends.
+> Evidence should always take precedence over assumption.
 
 ---
 
-## Enterprise Features
+## Comparison Categories
 
-Several enterprise capabilities remain outside the scope of the current implementation, including:
+When multiple audits exist, the Measurement Engine evaluates:
 
-- User authentication
-- Multi-tenant workspaces
-- Organisation management
-- Role-based permissions
-- Scheduled audit execution
-- Cloud deployment
-- API access
-- Usage analytics
+### Brand Visibility
 
-These features would become increasingly important as the platform evolves into a production-ready SaaS application.
+- Increased mentions
+- Reduced mentions
+- Stable visibility
 
 ---
 
-# Roadmap
+### Competitor Visibility
 
-The roadmap reflects logical product evolution rather than an exhaustive feature list.
-
-Each future enhancement has been considered within the context of maintaining the platform's evidence-first philosophy.
-
----
-
-## Version 2.1
-
-Focus on improving usability.
-
-Potential enhancements include:
-
-- Enhanced report formatting
-- Improved configuration options
-- Additional GEO metrics
-- Expanded documentation
-- Better error handling
+- Competitors gaining visibility
+- Competitors losing visibility
+- Newly emerging competitors
 
 ---
 
-## Version 3.0
+### Authority Sources
 
-Expand analytical capabilities.
+The engine evaluates whether citation patterns have changed over time.
 
-Possible additions include:
+Examples include:
 
-- Multi-provider AI analysis
-- Cross-provider comparison reports
-- Historical trend analysis
-- Competitor benchmarking
-- Enhanced authority source analysis
-- Interactive dashboards
+- additional authoritative sources
+- reduced dependency on weaker sources
+- improved diversity of citations
 
 ---
 
-## Version 4.0
+### Recommendation Progress
 
-Introduce enterprise-ready functionality.
+Recommendations generated during previous audits can be reviewed alongside current evidence.
 
-Potential capabilities include:
+This enables organisations to determine:
 
-- Team collaboration
-- User accounts
-- Cloud deployment
-- Scheduled recurring audits
-- REST API
-- Web interface
-- Organisation-level reporting
+- which improvements were implemented
+- which recommendations remain relevant
+- where additional work is required
 
 ---
 
-# Long-Term Vision
+# Reporting
 
-The long-term ambition for SignalScope AI is to become an evidence-driven GEO intelligence platform that helps organisations understand and improve how they are represented within AI-generated search experiences.
+Every engine contributes towards producing clear, human-readable reports.
 
-Rather than replacing consultants or marketing teams, the platform is intended to augment strategic decision-making through transparent analysis, explainable recommendations and measurable outcomes.
+SignalScope AI deliberately favours Markdown output because it is:
 
-Its guiding principle will remain unchanged:
+- portable
+- version controllable
+- easy to review
+- compatible with GitHub
+- suitable for consultants
+- suitable for business stakeholders
 
-> **Measure first. Understand second. Optimise third. Measure again.**
-
----
-
-# Project Status
-
-| Category | Status |
-|----------|--------|
-| Version | ✅ v2.0.0 |
-| Audit Engine | ✅ Complete |
-| Insights Engine | ✅ Complete |
-| Recommendation Engine | ✅ Complete |
-| Measurement Engine | ✅ Complete |
-| Automated Testing | ✅ 270+ Tests |
-| Documentation | 🚧 In Progress |
-| Future Enhancements | 📋 Planned |
-
-The completion of Version 2.0.0 marks the end of the core engineering phase and establishes a stable foundation for future enhancements.
+Reports are designed to be understandable by both technical and non-technical audiences.
 
 ---
 
+# Testing
+
+Software quality was treated as a first-class requirement throughout development.
+
+Rather than relying solely on manual testing, SignalScope AI includes an extensive automated testing suite covering both individual components and complete workflows.
+
+---
+
+## Test Coverage
+
+The project contains over **270 automated tests**, including:
+
+- unit tests
+- integration tests
+- parser tests
+- engine tests
+- reporting tests
+- measurement validation
+- regression tests
+
+The objective is to ensure future development can occur with confidence while reducing the likelihood of introducing regressions.
+
+---
+
+## Running Tests
+
+Execute the complete test suite with:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+All engines are tested independently before being validated as part of the complete end-to-end workflow.
+
+---
+
+# Example Outputs
+
+SignalScope AI generates structured Markdown reports covering:
+
+- audit summaries
+- competitor analysis
+- authority analysis
+- insight reports
+- recommendation reports
+- measurement reports
+
+These outputs are designed to support consultant reviews, internal reporting and future audit comparisons.
+
+---
 
