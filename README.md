@@ -1,91 +1,302 @@
 # SignalScope AI
 
-**AI Search Visibility & GEO Intelligence Auditor**
+> **AI Search Visibility & Generative Engine Optimisation (GEO)
+> Intelligence Platform**
 
-## Project Overview
+SignalScope AI is a Python application that helps organisations
+understand how their brand is represented within AI-powered search
+experiences such as Google Gemini, ChatGPT, Claude and Perplexity. It
+automates the collection, analysis and reporting of AI-generated
+responses to realistic buyer questions, enabling consultants and
+marketing teams to measure brand visibility, competitor presence and
+supporting evidence.
 
-SignalScope AI is an AI-assisted consulting workflow for measuring how visible a brand
-is across modern AI search engines, such as ChatGPT, Gemini and Perplexity. It is
-designed to help consultants understand whether a brand appears in AI-generated
-recommendations, how it compares against competitors, which sources the underlying
-models rely on, and where opportunities exist to improve Generative Engine
-Optimisation (GEO).
+------------------------------------------------------------------------
 
-SignalScope AI is **not** a chatbot and **not** a fully autonomous AI agent. It is a
-structured workflow in which AI performs analysis and the consultant validates evidence
-and owns every recommendation that reaches a client.
+# Table of Contents
 
-## Business Problem
+-   Overview
+-   Business Problem
+-   Why I Built This
+-   Target Users
+-   Key Features
+-   Architecture
+-   Workflow
+-   Repository Structure
+-   Technology Stack
+-   Installation
+-   Configuration
+-   Running the Project
+-   Running Tests
+-   Example Output
+-   Design Principles
+-   Governance
+-   Current Status
+-   Roadmap
+-   Contributing
+-   Author
 
-Search behaviour is shifting from traditional link-based search engines to
-AI-generated answers and recommendations. Brands have very little visibility into:
+------------------------------------------------------------------------
 
-- Whether they are mentioned at all in AI-generated responses to relevant queries.
-- How they are positioned relative to competitors within those responses.
-- Which underlying sources (websites, reviews, directories, press) AI systems appear
-  to be drawing on when forming those answers.
-- What actions might plausibly improve their standing in AI-generated results.
+# Overview
 
-Without a structured way to observe and evidence this, brands and their consultants are
-making GEO decisions on guesswork rather than data.
+SignalScope AI is designed to support the emerging discipline of
+**Generative Engine Optimisation (GEO)**.
 
-## Target Users
+Rather than manually asking dozens of questions across AI assistants and
+analysing lengthy responses, SignalScope AI automates the workflow by:
 
-- **Marketing and SEO/GEO consultants** who need a repeatable, evidence-based method
-  for auditing a client's AI search visibility.
-- **In-house marketing and brand teams** who want to understand their standing in
-  AI-generated recommendations before commissioning external work.
-- **Agencies** seeking a defensible, structured methodology to offer as part of a
-  broader search or digital visibility service.
+-   Loading buyer questions
+-   Querying an AI model
+-   Extracting structured insights
+-   Recording evidence
+-   Producing an executive audit report
 
-## High-Level Workflow
+The platform is intentionally **human-in-the-loop**. AI performs
+structured analysis while consultants remain responsible for
+interpreting evidence and making recommendations.
 
+------------------------------------------------------------------------
+
+# Business Problem
+
+Customer search behaviour is changing.
+
+Instead of relying solely on traditional search engines, customers
+increasingly ask AI assistants for recommendations before making
+purchasing decisions.
+
+Organisations currently have very limited visibility into:
+
+-   Whether their brand is mentioned.
+-   How competitors are positioned.
+-   Which sources influence AI responses.
+-   Whether AI sentiment is favourable.
+-   Where GEO improvements should be prioritised.
+
+SignalScope AI provides a repeatable, evidence-based workflow for
+measuring these outcomes.
+
+------------------------------------------------------------------------
+
+# Why I Built This
+
+I built SignalScope AI to explore how AI-powered search is changing
+digital marketing.
+
+As generative AI becomes part of the customer buying journey, marketers
+require new ways to understand how brands appear inside AI-generated
+recommendations.
+
+This project combines my interests in:
+
+-   Marketing Operations
+-   Growth Marketing
+-   AI Automation
+-   MarTech
+-   Python
+-   Data-driven decision making
+
+------------------------------------------------------------------------
+
+# Target Users
+
+-   Marketing consultants
+-   GEO / SEO consultants
+-   In-house marketing teams
+-   Digital agencies
+-   Brand strategy teams
+
+------------------------------------------------------------------------
+
+# Key Features
+
+-   Buyer question library
+-   Google Gemini integration
+-   Structured response analysis
+-   Brand visibility detection
+-   Competitor identification
+-   Source extraction
+-   Sentiment classification
+-   CSV audit dataset generation
+-   Executive Markdown reporting
+-   Duplicate protection
+-   Automated regression testing
+
+------------------------------------------------------------------------
+
+# Architecture
+
+``` text
+Buyer Questions
+      │
+      ▼
+Google Gemini
+      │
+      ▼
+Structured Response Analysis
+      │
+      ▼
+Audit Results (CSV)
+      │
+      ▼
+Executive GEO Report
 ```
-Client Question
-      ↓
-Evidence Collection
-      ↓
-Data Validation
-      ↓
-AI Analysis
-      ↓
-Structured Scoring
-      ↓
-Consultant Review
-      ↓
-Executive Recommendations
+
+------------------------------------------------------------------------
+
+# Workflow
+
+1.  Load a buyer question.
+2.  Generate an AI response.
+3.  Analyse the response.
+4.  Extract structured marketing insights.
+5.  Save the audit record.
+6.  Regenerate the executive report.
+
+------------------------------------------------------------------------
+
+# Repository Structure
+
+``` text
+SignalScope-AI/
+├── audits/
+├── docs/
+├── questions/
+├── reports/
+├── src/
+├── tests/
+├── README.md
+├── CURRENT_SPRINT.md
+└── requirements.txt
 ```
 
-Each stage produces artefacts that feed the next. AI is used within the Evidence
-Collection, AI Analysis and Structured Scoring stages; the Data Validation and
-Consultant Review stages are deliberately human-owned checkpoints. See
-[docs/METHODOLOGY.md](docs/METHODOLOGY.md) for the full rationale behind this design,
-and [docs/PROJECT_SCOPE.md](docs/PROJECT_SCOPE.md) for what is and is not in scope.
+------------------------------------------------------------------------
 
-## Technology Roadmap
+# Technology Stack
 
-No implementation technology has been chosen yet. This repository currently contains
-only the project foundation (documentation, structure and governance). Technology
-decisions — including language, AI provider(s), data storage and any tooling — will be
-made deliberately and recorded as Architecture Decision Records in
-[docs/decisions/](docs/decisions/) once work on the workflow itself begins.
+-   Python
+-   Google Gemini API
+-   CSV
+-   Markdown
+-   unittest
 
-## Governance Statement
+------------------------------------------------------------------------
 
-This project follows three governing principles, detailed in full in
-[ADR-001](docs/decisions/ADR-001-Project-Principles.md):
+# Installation
 
-1. **Evidence first.** Every claim made about a brand's AI search visibility must be
-   traceable to collected evidence.
-2. **AI second.** AI is used to analyse and structure evidence, not to originate
-   unverified claims.
-3. **Human judgement always.** A consultant reviews all evidence and AI output before
-   any recommendation is issued to a client. AI does not make final decisions.
+``` bash
+git clone https://github.com/rangoorajan-rgb/SignalScope-AI.git
+cd SignalScope-AI
+pip install -r requirements.txt
+```
 
-## Current Project Status
+------------------------------------------------------------------------
 
-**Sprint 0 — Project Foundation.** This repository currently contains only the
-project's documentation and directory structure. No application logic, data pipelines,
-prompts or scoring mechanisms have been built. See
-[CURRENT_SPRINT.md](CURRENT_SPRINT.md) for current status and
-[docs/CHANGELOG.md](docs/CHANGELOG.md) for version history.
+# Configuration
+
+Create your environment variables (or local configuration) and provide
+your Google Gemini API key before running the application.
+
+------------------------------------------------------------------------
+
+# Running the Project
+
+``` bash
+python src/run_end_to_end_demo.py
+```
+
+------------------------------------------------------------------------
+
+# Running Tests
+
+``` bash
+python -m unittest discover -s tests -v
+```
+
+Current status:
+
+-   167 / 167 tests passing
+
+------------------------------------------------------------------------
+
+# Example Output
+
+Each audit records:
+
+  Field            Description
+  ---------------- ----------------------------------
+  Question ID      Buyer question identifier
+  Question         Original buyer question
+  AI Engine        AI model used
+  Brand Cited      Whether the brand appears
+  Brand Position   Relative recommendation position
+  Competitors      Competitors mentioned
+  Sources          Supporting evidence
+  Sentiment        Positive / Neutral / Negative
+  Answer Snippet   Summary of the AI response
+
+------------------------------------------------------------------------
+
+# Design Principles
+
+SignalScope AI follows three core principles:
+
+1.  **Evidence First** -- Every insight should be traceable.
+2.  **AI Second** -- AI structures evidence rather than inventing
+    conclusions.
+3.  **Human Judgement Always** -- Consultants remain accountable for
+    recommendations.
+
+------------------------------------------------------------------------
+
+# Governance
+
+The methodology is documented within the `docs/` directory, including
+architecture decisions, project scope and design rationale.
+
+------------------------------------------------------------------------
+
+# Current Status
+
+**Version 1**
+
+Current capabilities include:
+
+-   Buyer question library
+-   AI response generation
+-   Structured response analysis
+-   Audit dataset generation
+-   Executive report generation
+-   End-to-end execution
+-   Automated testing
+
+------------------------------------------------------------------------
+
+# Roadmap
+
+Potential future enhancements include:
+
+-   Support for additional AI providers
+-   Dashboard visualisations
+-   PDF report generation
+-   Scheduled audits
+-   Multi-brand comparison
+-   Historical GEO trend analysis
+
+------------------------------------------------------------------------
+
+# Contributing
+
+This project is currently maintained as a personal portfolio project.
+Suggestions and feedback are welcome.
+
+------------------------------------------------------------------------
+
+# Author
+
+**Rangoo Rajan**
+
+Marketing Operations • Growth Marketing • AI Automation • MarTech
+
+GitHub: https://github.com/rangoorajan-rgb
