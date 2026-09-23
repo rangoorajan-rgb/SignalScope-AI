@@ -6,13 +6,12 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-import config
-
 PROJECT_ROOT = Path(__file__).resolve().parent
 SRC_DIR = PROJECT_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
+from audit_config import default_audit_config  # noqa: E402
 from dashboard_data import (  # noqa: E402
     build_dashboard_summary,
     list_report_files,
@@ -22,10 +21,12 @@ from dashboard_data import (  # noqa: E402
     report_display_title,
 )
 
-AUDIT_DIRECTORY = PROJECT_ROOT / "audits" / "boots-uk-health-beauty"
-REPORT_DIRECTORY = PROJECT_ROOT / "reports" / "boots-uk-health-beauty"
+# v2.1 shows the default audit only; there is no client selector yet.
+AUDIT_CONFIG = default_audit_config()
 
-AUDIT_RESULTS_FILE = AUDIT_DIRECTORY / "audit_results.csv"
+AUDIT_RESULTS_FILE = PROJECT_ROOT / AUDIT_CONFIG.results_file
+AUDIT_DIRECTORY = AUDIT_RESULTS_FILE.parent
+REPORT_DIRECTORY = PROJECT_ROOT / AUDIT_CONFIG.reports_dir
 
 
 st.set_page_config(
@@ -85,9 +86,9 @@ summary = load_summary(AUDIT_RESULTS_FILE)
 with st.sidebar:
     st.header("Project")
 
-    st.write(f"**Brand:** {config.COMPANY_NAME}")
-    st.write(f"**Industry:** {config.INDUSTRY}")
-    st.write("**Version:** 2.0.0")
+    st.write(f"**Brand:** {AUDIT_CONFIG.company_name}")
+    st.write(f"**Industry:** {AUDIT_CONFIG.category}")
+    st.write("**Version:** 2.1.0")
     st.write("**Audit provider:** Google Gemini")
 
     if st.button("Refresh dashboard"):
@@ -114,11 +115,11 @@ with dashboard_tab:
 
         proj_col1, proj_col2, proj_col3 = st.columns(3)
         with proj_col1:
-            st.markdown(f"**Company**  \n{config.COMPANY_NAME}")
-            st.markdown(f"**Industry**  \n{config.INDUSTRY}")
+            st.markdown(f"**Company**  \n{AUDIT_CONFIG.company_name}")
+            st.markdown(f"**Industry**  \n{AUDIT_CONFIG.category}")
         with proj_col2:
-            st.markdown(f"**Country**  \n{config.COUNTRY}")
-            st.markdown(f"**Question Library**  \n{config.QUESTION_LIBRARY}")
+            st.markdown(f"**Country**  \n{AUDIT_CONFIG.market}")
+            st.markdown(f"**Question Library**  \n{AUDIT_CONFIG.question_library}")
         with proj_col3:
             st.markdown(f"**Last Audit Date**  \n{last_audit_date or 'No audits recorded yet'}")
 
@@ -127,7 +128,7 @@ with dashboard_tab:
     if audit_results.empty:
         st.warning(
             "No audit results were found. Check that "
-            "`audits/boots-uk-health-beauty/audit_results.csv` exists."
+            f"`{AUDIT_CONFIG.results_file}` exists."
         )
     elif summary is not None and "error" in summary:
         st.error(f"Could not read audit results: {summary['error']}")

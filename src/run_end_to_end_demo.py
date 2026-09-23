@@ -17,11 +17,17 @@ from __future__ import annotations
 
 import sys
 
+from audit_config import AuditConfig, AuditConfigError, default_audit_config, parse_audit_arg
 from audit_runner import AuditRunnerError, load_questions
 from gemini_client import GeminiClientError, generate_response
 from response_analyzer import ResponseAnalysisError, analyze_response
 from run_single_audit import RunSingleAuditError, find_question
-from run_structured_audit import BRAND, KNOWN_COMPETITORS, TARGET_ENGINE, build_structured_row
+from run_structured_audit import (  # BRAND/KNOWN_COMPETITORS kept as backwards-compatible aliases
+    BRAND,
+    KNOWN_COMPETITORS,
+    TARGET_ENGINE,
+    build_structured_row,
+)
 from write_single_audit_result import (
     WriteAuditResultError,
     check_for_duplicate,
@@ -30,9 +36,11 @@ from write_single_audit_result import (
 )
 from report_generator import generate_report
 
-DEFAULT_QUESTION_FILE = "audits/boots-uk-health-beauty/buyer_questions.csv"
-DEFAULT_RESULTS_FILE = "audits/boots-uk-health-beauty/audit_results.csv"
-DEFAULT_REPORT_FILE = "reports/boots-uk-health-beauty/audit_report.md"
+_DEFAULT_AUDIT_CONFIG = default_audit_config()
+
+DEFAULT_QUESTION_FILE = _DEFAULT_AUDIT_CONFIG.questions_file
+DEFAULT_RESULTS_FILE = _DEFAULT_AUDIT_CONFIG.results_file
+DEFAULT_REPORT_FILE = _DEFAULT_AUDIT_CONFIG.audit_report_file
 TARGET_QUESTION_ID = "PA05"
 
 
@@ -51,14 +59,22 @@ class ReportRegenerationFailed(Exception):
 
 
 def run_end_to_end_demo(
-    question_csv_path: str = DEFAULT_QUESTION_FILE,
-    results_csv_path: str = DEFAULT_RESULTS_FILE,
-    report_path: str = DEFAULT_REPORT_FILE,
+    question_csv_path: str | None = None,
+    results_csv_path: str | None = None,
+    report_path: str | None = None,
     question_id: str = TARGET_QUESTION_ID,
-    brand: str = BRAND,
+    brand: str | None = None,
     known_competitors: list[str] | None = None,
+    *,
+    audit_config: AuditConfig | None = None,
 ) -> dict[str, str]:
     """Run the full PA05 demo workflow and return the new audit row.
+
+    audit_config defaults to the default audit. Any path, brand, or
+    known_competitors left as None is taken from it (an explicitly passed
+    value always wins), and it is passed on to the report regeneration.
+    With neither audit_config nor known_competitors given, the
+    module-level KNOWN_COMPETITORS is used, as in v2.0.
 
     Order of operations, each a hard stop before anything irreversible:
       1. Load questions and locate question_id.
@@ -76,7 +92,20 @@ def run_end_to_end_demo(
     succeeded but step 6 failed: the CSV has already been updated by
     that point, and the exception says so explicitly.
     """
-    known_competitors = KNOWN_COMPETITORS if known_competitors is None else known_competitors
+    if known_competitors is None and audit_config is None:
+        # v2.0 default: the module-level KNOWN_COMPETITORS list itself.
+        known_competitors = KNOWN_COMPETITORS
+    audit_config = audit_config or _DEFAULT_AUDIT_CONFIG
+    if question_csv_path is None:
+        question_csv_path = audit_config.questions_file
+    if results_csv_path is None:
+        results_csv_path = audit_config.results_file
+    if report_path is None:
+        report_path = audit_config.audit_report_file
+    if brand is None:
+        brand = audit_config.brand
+    if known_competitors is None:
+        known_competitors = list(audit_config.competitors)
 
     questions = load_questions(question_csv_path)
     question_row = find_question(questions, question_id)
@@ -100,7 +129,7 @@ def run_end_to_end_demo(
     # swallowed or mistaken for "nothing happened" — it is reported as a
     # distinct, explicit partial-success condition.
     try:
-        generate_report(question_csv_path, results_csv_path, report_path)
+        generate_report(question_csv_path, results_csv_path, report_path, audit_config=audit_config)
     except Exception as exc:
         raise ReportRegenerationFailed(new_row, exc) from exc
 
@@ -128,12 +157,20 @@ def _print_summary(
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
-    question_csv_path = argv[0] if len(argv) > 0 else DEFAULT_QUESTION_FILE
-    results_csv_path = argv[1] if len(argv) > 1 else DEFAULT_RESULTS_FILE
-    report_path = argv[2] if len(argv) > 2 else DEFAULT_REPORT_FILE
+    try:
+        audit_config, argv = parse_audit_arg(argv)
+    except AuditConfigError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    paths = audit_config or _DEFAULT_AUDIT_CONFIG
+    question_csv_path = argv[0] if len(argv) > 0 else paths.questions_file
+    results_csv_path = argv[1] if len(argv) > 1 else paths.results_file
+    report_path = argv[2] if len(argv) > 2 else paths.audit_report_file
 
     try:
-        new_row = run_end_to_end_demo(question_csv_path, results_csv_path, report_path)
+        new_row = run_end_to_end_demo(
+            question_csv_path, results_csv_path, report_path, audit_config=audit_config
+        )
     except ReportRegenerationFailed as exc:
         print(f"Partial success: {exc}", file=sys.stderr)
         print(

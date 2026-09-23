@@ -6,7 +6,7 @@
 
 **Measure AI Visibility • Generate Explainable Insights • Prioritise Optimisation • Measure Improvement**
 
-![Version](https://img.shields.io/badge/version-v2.0.0-blue)
+![Version](https://img.shields.io/badge/version-v2.1.0-blue)
 ![Python](https://img.shields.io/badge/python-3.11+-3776AB?logo=python&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-270%2B-brightgreen)
 ![Architecture](https://img.shields.io/badge/architecture-modular-orange)
@@ -18,7 +18,7 @@ SignalScope AI is an evidence-first GEO intelligence platform that helps organis
 
 Instead of attempting to automatically optimise websites, SignalScope AI measures AI visibility, analyses evidence, generates explainable optimisation recommendations and measures improvement over time.
 
-**Version:** 2.0.0
+**Version:** 2.1.0
 
 </div>
 
@@ -231,6 +231,12 @@ Run the complete workflow.
 python src/run_end_to_end_demo.py
 ```
 
+Every command-line entry point runs the default Boots UK demonstration audit unless another audit is selected with `--audit SLUG` (see [Audit Configuration](#audit-configuration)).
+
+```bash
+python src/report_generator.py --audit boots-uk-health-beauty
+```
+
 Run all automated tests.
 
 ```bash
@@ -257,13 +263,53 @@ The dashboard provides:
 
 The dashboard is intentionally read-only. It does not modify audit data, execute new audits or regenerate reports. It only reads and displays the CSV audit results and Markdown reports that the four engines have already generated.
 
+In v2.1 the dashboard displays the default audit only. Its project metadata and file locations come from that audit's `audit_config.json`; there is no client selector yet.
+
 ## Project Scope
 
-This portfolio build of SignalScope AI is configured for a single demonstration engagement: **Boots UK**, in the Health & Beauty Retail category, within the United Kingdom market, benchmarked against Superdrug, Amazon and Holland & Barrett. It is a single-company demonstration rather than a multi-tenant product.
+The bundled demonstration engagement is **Boots UK**, in the Health & Beauty Retail category, within the United Kingdom market, benchmarked against Superdrug, Amazon and Holland & Barrett. It remains the default audit for every command and for the dashboard.
 
-## Configuration
+Since v2.1, SignalScope AI provides a **multi-company audit foundation**: the Audit, Insights, Recommendation and Measurement Engines are no longer tied to one company and can run any audit that has its own configuration file. This is a foundation for reusable client audits, **not a production SaaS product**. v2.1 has no persistent database, no scheduled monitoring, no authentication or user accounts, no client selector in the dashboard and no automatic generation of a client's question set from the master library.
 
-`config.py`, in the project root, controls the dashboard's project metadata only — company name, industry, country, competitor list and question library name. It has no effect on the Audit, Insights, Recommendation or Measurement Engines, which define their own audit scope independently and are not read from this file. There is no in-app editing interface; to reuse this project for a different company, edit the values in `config.py` directly.
+## Audit Configuration
+
+Each audit lives in its own folder, identified by a slug, and is described by an `audit_config.json` file:
+
+```text
+audits/<slug>/audit_config.json      # client and scope values
+audits/<slug>/buyer_questions.csv    # the audit's question set
+audits/<slug>/audit_results.csv      # structured audit evidence
+reports/<slug>/                      # generated Markdown reports
+```
+
+```json
+{
+  "slug": "boots-uk-health-beauty",
+  "brand": "Boots",
+  "company_name": "Boots UK",
+  "report_subject": "Boots UK Health & Beauty",
+  "market": "United Kingdom",
+  "category": "Health & Beauty Retail",
+  "competitors": ["Superdrug", "Amazon", "Holland & Barrett"],
+  "question_library": "UK Retail GEO Library"
+}
+```
+
+- `brand` is the name the Audit Engine looks for in AI answers; `company_name` is the display name; `report_subject` is the report title suffix. They are deliberately separate fields.
+- `competitors` order is significant: it maps to `[COMPETITOR_1]`, `[COMPETITOR_2]`, … in the question library.
+- The file is validated strictly by [src/audit_config.py](src/audit_config.py): missing, unexpected, empty or wrongly typed fields, a slug that does not match its folder, and malformed JSON are all rejected with a clear error.
+
+Select an audit on any command-line entry point with `--audit SLUG`. Omitting it runs the default Boots audit exactly as before, and explicit file-path arguments still override the selected audit's default paths:
+
+```bash
+python src/report_generator.py --audit <slug>
+python src/run_batch_audit.py --audit <slug> --limit 5
+python src/measurement_engine.py <baseline.csv> <followup.csv> --audit <slug>
+```
+
+To prepare a new audit today, create `audits/<slug>/` with an `audit_config.json` and a `buyer_questions.csv` substituted by hand from [questions/buyer_questions_master.csv](questions/buyer_questions_master.csv) (see [docs/QUESTION_GENERATION_GUIDE.md](docs/QUESTION_GENERATION_GUIDE.md)), plus an `audit_results.csv` containing the 11-column header.
+
+The root-level `config.py` is kept only as a backwards-compatible shim that re-exposes the default audit's values; edit an audit's `audit_config.json` instead.
 
 ## Run the Dashboard
 
@@ -354,6 +400,7 @@ This modular approach keeps each component independently testable while allowing
 SignalScope-AI/
 │
 ├── src/
+│   ├── audit_config.py              # Per-audit configuration loader and --audit parsing
 │   ├── audit_runner.py              # Loads and validates the buyer question library
 │   ├── gemini_client.py             # Minimal Gemini API wrapper
 │   ├── response_analyzer.py         # Structured extraction from a raw AI response
@@ -372,7 +419,8 @@ SignalScope-AI/
 ├── tests/                           # One test module per src/ file (unittest)
 │
 ├── audits/
-│   └── boots-uk-health-beauty/
+│   └── boots-uk-health-beauty/      # Default demonstration audit
+│       ├── audit_config.json        # Client and scope values for this audit
 │       ├── buyer_questions.csv      # Placeholder-substituted question set
 │       └── audit_results.csv        # Structured audit evidence (11-column schema)
 │
@@ -389,7 +437,7 @@ SignalScope-AI/
 ├── docs/                            # Methodology, specification and ADRs
 │
 ├── streamlit_app.py                 # Read-only dashboard
-├── config.py                        # Dashboard project metadata only
+├── config.py                        # Backwards-compatible shim over the default audit config
 ├── requirements.txt
 ├── README.md
 ├── CURRENT_SPRINT.md
@@ -1034,6 +1082,12 @@ The project contains over **270 automated tests**, including:
 - regression tests
 
 The objective is to ensure future development can occur with confidence while reducing the likelihood of introducing regressions.
+
+v2.1 added three regression safeguards:
+
+- **Golden-master tests** regenerate the deterministic Boots reports and require them to match the committed reports byte for byte, and pin the recommendations renderer's output.
+- **Multi-client tests** run the complete workflow for a fictional company, entirely in temporary directories with Gemini mocked, and require that no Boots value leaks into its output.
+- **A static guard** fails if client-specific business values are written as literals in reusable production code.
 
 ---
 

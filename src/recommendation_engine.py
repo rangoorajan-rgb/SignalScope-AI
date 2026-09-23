@@ -24,15 +24,18 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from audit_config import AuditConfig, AuditConfigError, default_audit_config, parse_audit_arg
 from audit_runner import AuditRunnerError, load_questions
 from gemini_client import GeminiClientError, generate_response
 from geo_findings_analyzer import Finding, compute_findings
 from report_generator import BRAND, CATEGORY, MARKET, ReportGeneratorError, load_audit_rows
 from write_single_audit_result import WriteAuditResultError
 
-DEFAULT_QUESTIONS_FILE = "audits/boots-uk-health-beauty/buyer_questions.csv"
-DEFAULT_RESULTS_FILE = "audits/boots-uk-health-beauty/audit_results.csv"
-DEFAULT_RECOMMENDATIONS_REPORT_FILE = "reports/boots-uk-health-beauty/GEO_RECOMMENDATIONS.md"
+_DEFAULT_AUDIT_CONFIG = default_audit_config()
+
+DEFAULT_QUESTIONS_FILE = _DEFAULT_AUDIT_CONFIG.questions_file
+DEFAULT_RESULTS_FILE = _DEFAULT_AUDIT_CONFIG.results_file
+DEFAULT_RECOMMENDATIONS_REPORT_FILE = _DEFAULT_AUDIT_CONFIG.recommendations_report_file
 
 VALID_LEVELS = {"High", "Medium", "Low"}
 LEVEL_SCORES = {"High": 3, "Medium": 2, "Low": 1}
@@ -291,21 +294,29 @@ def generate_recommendations(
     return recommendations
 
 
-def render_markdown(recommendations: list[Recommendation], total_findings: int, generated_at: date) -> str:
+def render_markdown(
+    recommendations: list[Recommendation],
+    total_findings: int,
+    generated_at: date,
+    *,
+    audit_config: AuditConfig | None = None,
+) -> str:
     """Render the Markdown GEO recommendations report purely from an
     already-computed list[Recommendation] - the structured recommendations
-    are the source of truth, not this text."""
+    are the source of truth, not this text. audit_config defaults to the
+    default audit."""
+    audit_config = audit_config or _DEFAULT_AUDIT_CONFIG
     priority_counts = Counter(r.priority for r in recommendations)
 
     lines: list[str] = []
-    lines.append("# SignalScope AI GEO Recommendations Report — Boots UK Health & Beauty")
+    lines.append(f"# SignalScope AI GEO Recommendations Report — {audit_config.report_subject}")
     lines.append("")
 
     lines.append("## Report Overview")
     lines.append("")
-    lines.append(f"- Brand: {BRAND}")
-    lines.append(f"- Market: {MARKET}")
-    lines.append(f"- Category: {CATEGORY}")
+    lines.append(f"- Brand: {audit_config.brand}")
+    lines.append(f"- Market: {audit_config.market}")
+    lines.append(f"- Category: {audit_config.category}")
     lines.append(f"- Findings analysed: {total_findings}")
     lines.append(f"- Recommendations generated: {len(recommendations)}")
     lines.append(f"- Report generation date: {generated_at.isoformat()}")
@@ -361,13 +372,20 @@ def render_markdown(recommendations: list[Recommendation], total_findings: int, 
 
 
 def generate_geo_recommendations(
-    questions_csv_path: str = DEFAULT_QUESTIONS_FILE,
-    results_csv_path: str = DEFAULT_RESULTS_FILE,
-    report_path: str = DEFAULT_RECOMMENDATIONS_REPORT_FILE,
+    questions_csv_path: str | None = None,
+    results_csv_path: str | None = None,
+    report_path: str | None = None,
     generated_at: date | None = None,
+    *,
+    audit_config: AuditConfig | None = None,
 ) -> tuple[list[Recommendation], str]:
     """Load the audit dataset, compute findings, generate recommendations,
     and render + write the Markdown report.
+
+    audit_config defaults to the default audit and supplies the brand,
+    market and category given to generate_recommendations; any path left
+    as None is taken from it, so a non-default audit never writes to
+    another audit's files.
 
     Returns (recommendations, markdown_text). Raises AuditRunnerError for
     a missing/invalid question file, WriteAuditResultError for a missing/
@@ -375,14 +393,23 @@ def generate_geo_recommendations(
     has no data rows, or RecommendationEngineError for any problem
     generating the recommendations themselves.
     """
+    audit_config = audit_config or _DEFAULT_AUDIT_CONFIG
+    if questions_csv_path is None:
+        questions_csv_path = audit_config.questions_file
+    if results_csv_path is None:
+        results_csv_path = audit_config.results_file
+    if report_path is None:
+        report_path = audit_config.recommendations_report_file
     generated_at = generated_at or date.today()
 
     all_questions = load_questions(questions_csv_path)
     rows = load_audit_rows(results_csv_path)
-    findings = compute_findings(rows, len(all_questions))
+    findings = compute_findings(rows, len(all_questions), audit_config=audit_config)
 
-    recommendations = generate_recommendations(findings)
-    markdown = render_markdown(recommendations, len(findings), generated_at)
+    recommendations = generate_recommendations(
+        findings, audit_config.brand, audit_config.market, audit_config.category
+    )
+    markdown = render_markdown(recommendations, len(findings), generated_at, audit_config=audit_config)
 
     out_path = Path(report_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -393,12 +420,20 @@ def generate_geo_recommendations(
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
-    questions_csv_path = argv[0] if len(argv) > 0 else DEFAULT_QUESTIONS_FILE
-    results_csv_path = argv[1] if len(argv) > 1 else DEFAULT_RESULTS_FILE
-    report_path = argv[2] if len(argv) > 2 else DEFAULT_RECOMMENDATIONS_REPORT_FILE
+    try:
+        audit_config, argv = parse_audit_arg(argv)
+    except AuditConfigError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    paths = audit_config or _DEFAULT_AUDIT_CONFIG
+    questions_csv_path = argv[0] if len(argv) > 0 else paths.questions_file
+    results_csv_path = argv[1] if len(argv) > 1 else paths.results_file
+    report_path = argv[2] if len(argv) > 2 else paths.recommendations_report_file
 
     try:
-        recommendations, _ = generate_geo_recommendations(questions_csv_path, results_csv_path, report_path)
+        recommendations, _ = generate_geo_recommendations(
+            questions_csv_path, results_csv_path, report_path, audit_config=audit_config
+        )
     except (AuditRunnerError, WriteAuditResultError, ReportGeneratorError, RecommendationEngineError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1

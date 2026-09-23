@@ -16,12 +16,15 @@ import tempfile
 from datetime import date
 from pathlib import Path
 
+from audit_config import AuditConfig, AuditConfigError, default_audit_config, parse_audit_arg
 from audit_runner import AuditRunnerError, load_questions
 from gemini_client import GeminiClientError, generate_response
 from run_single_audit import RunSingleAuditError, find_question
 
-DEFAULT_QUESTION_FILE = "audits/boots-uk-health-beauty/buyer_questions.csv"
-DEFAULT_RESULTS_FILE = "audits/boots-uk-health-beauty/audit_results.csv"
+_DEFAULT_AUDIT_CONFIG = default_audit_config()
+
+DEFAULT_QUESTION_FILE = _DEFAULT_AUDIT_CONFIG.questions_file
+DEFAULT_RESULTS_FILE = _DEFAULT_AUDIT_CONFIG.results_file
 TARGET_QUESTION_ID = "PA01"
 TARGET_ENGINE = "Gemini"
 MAX_SNIPPET_LENGTH = 500
@@ -125,11 +128,16 @@ def write_results_atomically(results_path: str, rows: list[dict[str, str]]) -> N
 
 
 def write_single_audit_result(
-    question_csv_path: str = DEFAULT_QUESTION_FILE,
-    results_csv_path: str = DEFAULT_RESULTS_FILE,
+    question_csv_path: str | None = None,
+    results_csv_path: str | None = None,
     question_id: str = TARGET_QUESTION_ID,
+    *,
+    audit_config: AuditConfig | None = None,
 ) -> dict[str, str]:
     """Run question_id through Gemini and append one row to results_csv_path.
+
+    Any path left as None is taken from audit_config (default: the
+    default audit).
 
     Returns the new row that was written. Existing rows are loaded and
     schema-validated, and a duplicate (question_id, engine) row is rejected,
@@ -139,6 +147,12 @@ def write_single_audit_result(
     Raises AuditRunnerError, RunSingleAuditError, WriteAuditResultError, or
     GeminiClientError for the various failure modes.
     """
+    audit_config = audit_config or _DEFAULT_AUDIT_CONFIG
+    if question_csv_path is None:
+        question_csv_path = audit_config.questions_file
+    if results_csv_path is None:
+        results_csv_path = audit_config.results_file
+
     questions = load_questions(question_csv_path)
     question_row = find_question(questions, question_id)
 
@@ -154,11 +168,17 @@ def write_single_audit_result(
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
-    question_csv_path = argv[0] if len(argv) > 0 else DEFAULT_QUESTION_FILE
-    results_csv_path = argv[1] if len(argv) > 1 else DEFAULT_RESULTS_FILE
+    try:
+        audit_config, argv = parse_audit_arg(argv)
+    except AuditConfigError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    paths = audit_config or _DEFAULT_AUDIT_CONFIG
+    question_csv_path = argv[0] if len(argv) > 0 else paths.questions_file
+    results_csv_path = argv[1] if len(argv) > 1 else paths.results_file
 
     try:
-        new_row = write_single_audit_result(question_csv_path, results_csv_path)
+        new_row = write_single_audit_result(question_csv_path, results_csv_path, audit_config=audit_config)
     except (
         AuditRunnerError,
         RunSingleAuditError,

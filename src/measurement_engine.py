@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from audit_config import AuditConfig, AuditConfigError, default_audit_config, parse_audit_arg
 from audit_runner import AuditRunnerError, load_questions
 from geo_findings_analyzer import (
     ALL_BUYER_JOURNEY_STAGES,
@@ -39,8 +40,10 @@ from report_generator import (
 )
 from write_single_audit_result import WriteAuditResultError
 
-DEFAULT_QUESTIONS_FILE = "audits/boots-uk-health-beauty/buyer_questions.csv"
-DEFAULT_PROGRESS_REPORT_FILE = "reports/boots-uk-health-beauty/GEO_PROGRESS.md"
+_DEFAULT_AUDIT_CONFIG = default_audit_config()
+
+DEFAULT_QUESTIONS_FILE = _DEFAULT_AUDIT_CONFIG.questions_file
+DEFAULT_PROGRESS_REPORT_FILE = _DEFAULT_AUDIT_CONFIG.progress_report_file
 
 IMPROVED = "Improved"
 DECLINED = "Declined"
@@ -345,12 +348,17 @@ def compare_audits(
     )
 
 
-def render_markdown(progress: Progress, is_validation_run: bool = False) -> str:
+def render_markdown(
+    progress: Progress, is_validation_run: bool = False, *, audit_config: AuditConfig | None = None
+) -> str:
     """Render the Markdown GEO progress report purely from an already-
     computed Progress object - the structured comparison is the source of
-    truth, not this text."""
+    truth, not this text. audit_config (default: the default audit)
+    supplies only the report title; brand/market/category come from
+    progress."""
+    audit_config = audit_config or _DEFAULT_AUDIT_CONFIG
     lines: list[str] = []
-    lines.append("# SignalScope AI GEO Progress Report — Boots UK Health & Beauty")
+    lines.append(f"# SignalScope AI GEO Progress Report — {audit_config.report_subject}")
     lines.append("")
 
     if is_validation_run:
@@ -455,13 +463,20 @@ def render_markdown(progress: Progress, is_validation_run: bool = False) -> str:
 def generate_geo_progress(
     baseline_results_csv_path: str,
     followup_results_csv_path: str,
-    questions_csv_path: str = DEFAULT_QUESTIONS_FILE,
-    report_path: str = DEFAULT_PROGRESS_REPORT_FILE,
+    questions_csv_path: str | None = None,
+    report_path: str | None = None,
     generated_at: date | None = None,
     is_validation_run: bool = False,
+    *,
+    audit_config: AuditConfig | None = None,
 ) -> tuple[Progress, str]:
     """Load two audit datasets, compare them, and render + write the
     Markdown progress report.
+
+    audit_config defaults to the default audit and supplies the brand,
+    market and category given to compare_audits; a questions/report path
+    left as None is taken from it, so a non-default audit never writes to
+    another audit's files.
 
     Returns (progress, markdown_text). Raises AuditRunnerError for a
     missing/invalid question file, WriteAuditResultError for a missing/
@@ -469,14 +484,27 @@ def generate_geo_progress(
     if either results file has no data rows, or MeasurementEngineError for
     any other comparison problem.
     """
+    audit_config = audit_config or _DEFAULT_AUDIT_CONFIG
+    if questions_csv_path is None:
+        questions_csv_path = audit_config.questions_file
+    if report_path is None:
+        report_path = audit_config.progress_report_file
     generated_at = generated_at or date.today()
 
     all_questions = load_questions(questions_csv_path)
     baseline_rows = load_audit_rows(baseline_results_csv_path)
     followup_rows = load_audit_rows(followup_results_csv_path)
 
-    progress = compare_audits(baseline_rows, followup_rows, len(all_questions), generated_at=generated_at)
-    markdown = render_markdown(progress, is_validation_run=is_validation_run)
+    progress = compare_audits(
+        baseline_rows,
+        followup_rows,
+        len(all_questions),
+        brand=audit_config.brand,
+        market=audit_config.market,
+        category=audit_config.category,
+        generated_at=generated_at,
+    )
+    markdown = render_markdown(progress, is_validation_run=is_validation_run, audit_config=audit_config)
 
     out_path = Path(report_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -487,18 +515,24 @@ def generate_geo_progress(
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
+    try:
+        audit_config, argv = parse_audit_arg(argv)
+    except AuditConfigError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    paths = audit_config or _DEFAULT_AUDIT_CONFIG
     if len(argv) < 2:
         print(
             "Usage: python src/measurement_engine.py <baseline_results.csv> "
-            "<followup_results.csv> [questions.csv] [report.md]",
+            "<followup_results.csv> [questions.csv] [report.md] [--audit SLUG]",
             file=sys.stderr,
         )
         return 1
 
     baseline_path = argv[0]
     followup_path = argv[1]
-    questions_csv_path = argv[2] if len(argv) > 2 else DEFAULT_QUESTIONS_FILE
-    report_path = argv[3] if len(argv) > 3 else DEFAULT_PROGRESS_REPORT_FILE
+    questions_csv_path = argv[2] if len(argv) > 2 else paths.questions_file
+    report_path = argv[3] if len(argv) > 3 else paths.progress_report_file
     is_validation_run = Path(baseline_path).resolve() == Path(followup_path).resolve()
 
     try:
@@ -508,6 +542,7 @@ def main(argv: list[str] | None = None) -> int:
             questions_csv_path,
             report_path,
             is_validation_run=is_validation_run,
+            audit_config=audit_config,
         )
     except (AuditRunnerError, WriteAuditResultError, ReportGeneratorError, MeasurementEngineError) as exc:
         print(f"Error: {exc}", file=sys.stderr)

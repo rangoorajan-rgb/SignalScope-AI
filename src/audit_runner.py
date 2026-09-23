@@ -12,9 +12,13 @@ import csv
 import sys
 from pathlib import Path
 
+from audit_config import AuditConfigError, default_audit_config, parse_audit_arg
+
 REQUIRED_COLUMNS = ["question_id", "buyer_journey_stage", "question"]
 
-DEFAULT_QUESTION_FILE = "audits/boots-uk-health-beauty/buyer_questions.csv"
+_DEFAULT_AUDIT_CONFIG = default_audit_config()
+
+DEFAULT_QUESTION_FILE = _DEFAULT_AUDIT_CONFIG.questions_file
 
 
 class AuditRunnerError(Exception):
@@ -61,7 +65,13 @@ def print_questions(rows: list[dict[str, str]]) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
-    csv_path = argv[0] if argv else DEFAULT_QUESTION_FILE
+    try:
+        audit_config, argv = parse_audit_arg(argv)
+    except AuditConfigError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    paths = audit_config or _DEFAULT_AUDIT_CONFIG
+    csv_path = argv[0] if argv else paths.questions_file
 
     try:
         rows = load_questions(csv_path)

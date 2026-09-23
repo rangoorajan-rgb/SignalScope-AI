@@ -13,6 +13,7 @@ from __future__ import annotations
 import sys
 from datetime import date
 
+from audit_config import AuditConfig, AuditConfigError, default_audit_config, parse_audit_arg
 from audit_runner import AuditRunnerError, load_questions
 from gemini_client import GeminiClientError, generate_response
 from response_analyzer import ResponseAnalysisError, analyze_response
@@ -25,13 +26,16 @@ from write_single_audit_result import (
     write_results_atomically,
 )
 
-DEFAULT_QUESTION_FILE = "audits/boots-uk-health-beauty/buyer_questions.csv"
-DEFAULT_RESULTS_FILE = "audits/boots-uk-health-beauty/audit_results.csv"
+# Backwards-compatible aliases for the default audit's values.
+_DEFAULT_AUDIT_CONFIG = default_audit_config()
+
+DEFAULT_QUESTION_FILE = _DEFAULT_AUDIT_CONFIG.questions_file
+DEFAULT_RESULTS_FILE = _DEFAULT_AUDIT_CONFIG.results_file
 TARGET_QUESTION_ID = "PA04"
 TARGET_ENGINE = "Gemini"
 
-BRAND = "Boots"
-KNOWN_COMPETITORS = ["Superdrug", "Amazon", "Holland & Barrett"]
+BRAND = _DEFAULT_AUDIT_CONFIG.brand
+KNOWN_COMPETITORS = list(_DEFAULT_AUDIT_CONFIG.competitors)
 
 
 def build_structured_row(
@@ -54,14 +58,21 @@ def build_structured_row(
 
 
 def run_structured_audit(
-    question_csv_path: str = DEFAULT_QUESTION_FILE,
-    results_csv_path: str = DEFAULT_RESULTS_FILE,
+    question_csv_path: str | None = None,
+    results_csv_path: str | None = None,
     question_id: str = TARGET_QUESTION_ID,
-    brand: str = BRAND,
+    brand: str | None = None,
     known_competitors: list[str] | None = None,
+    *,
+    audit_config: AuditConfig | None = None,
 ) -> dict[str, str]:
     """Generate and structurally analyse one question's Gemini answer, then
     append exactly one row to results_csv_path.
+
+    audit_config defaults to the default audit. Any path, brand, or
+    known_competitors left as None is taken from it; an explicitly passed
+    value always wins. With neither audit_config nor known_competitors
+    given, the module-level KNOWN_COMPETITORS is used, as in v2.0.
 
     Returns the new row that was written. Existing rows are loaded and
     schema-validated, and a duplicate (question_id, engine) row is
@@ -72,7 +83,18 @@ def run_structured_audit(
     GeminiClientError, or ResponseAnalysisError for the various failure
     modes.
     """
-    known_competitors = KNOWN_COMPETITORS if known_competitors is None else known_competitors
+    if known_competitors is None and audit_config is None:
+        # v2.0 default: the module-level KNOWN_COMPETITORS list itself.
+        known_competitors = KNOWN_COMPETITORS
+    audit_config = audit_config or _DEFAULT_AUDIT_CONFIG
+    if question_csv_path is None:
+        question_csv_path = audit_config.questions_file
+    if results_csv_path is None:
+        results_csv_path = audit_config.results_file
+    if brand is None:
+        brand = audit_config.brand
+    if known_competitors is None:
+        known_competitors = list(audit_config.competitors)
 
     questions = load_questions(question_csv_path)
     question_row = find_question(questions, question_id)
@@ -93,11 +115,17 @@ def run_structured_audit(
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
-    question_csv_path = argv[0] if len(argv) > 0 else DEFAULT_QUESTION_FILE
-    results_csv_path = argv[1] if len(argv) > 1 else DEFAULT_RESULTS_FILE
+    try:
+        audit_config, argv = parse_audit_arg(argv)
+    except AuditConfigError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    paths = audit_config or _DEFAULT_AUDIT_CONFIG
+    question_csv_path = argv[0] if len(argv) > 0 else paths.questions_file
+    results_csv_path = argv[1] if len(argv) > 1 else paths.results_file
 
     try:
-        new_row = run_structured_audit(question_csv_path, results_csv_path)
+        new_row = run_structured_audit(question_csv_path, results_csv_path, audit_config=audit_config)
     except (
         AuditRunnerError,
         RunSingleAuditError,

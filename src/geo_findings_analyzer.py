@@ -25,8 +25,9 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from audit_config import AuditConfig, AuditConfigError, default_audit_config, parse_audit_arg
 from audit_runner import AuditRunnerError, load_questions
-from report_generator import (
+from report_generator import (  # BRAND/CATEGORY/MARKET kept as backwards-compatible aliases
     BRAND,
     CATEGORY,
     MARKET,
@@ -39,9 +40,11 @@ from report_generator import (
 )
 from write_single_audit_result import WriteAuditResultError
 
-DEFAULT_QUESTIONS_FILE = "audits/boots-uk-health-beauty/buyer_questions.csv"
-DEFAULT_RESULTS_FILE = "audits/boots-uk-health-beauty/audit_results.csv"
-DEFAULT_FINDINGS_REPORT_FILE = "reports/boots-uk-health-beauty/GEO_FINDINGS.md"
+_DEFAULT_AUDIT_CONFIG = default_audit_config()
+
+DEFAULT_QUESTIONS_FILE = _DEFAULT_AUDIT_CONFIG.questions_file
+DEFAULT_RESULTS_FILE = _DEFAULT_AUDIT_CONFIG.results_file
+DEFAULT_FINDINGS_REPORT_FILE = _DEFAULT_AUDIT_CONFIG.findings_report_file
 
 ALL_BUYER_JOURNEY_STAGES = [
     "Problem Awareness",
@@ -78,14 +81,14 @@ def _safe_ratio(numerator: int, denominator: int) -> float:
     return (numerator / denominator) if denominator else 0.0
 
 
-def _finding_overall_visibility(rows: list[dict[str, str]], total_question_count: int) -> Finding:
+def _finding_overall_visibility(rows: list[dict[str, str]], total_question_count: int, brand: str) -> Finding:
     visibility = compute_brand_visibility(rows)
     unique_questions = len({r["question_id"] for r in rows if r.get("question_id")})
     coverage_ratio = _safe_ratio(unique_questions, total_question_count)
     rate_text = f"{visibility['rate']:.1f}%" if visibility["rate"] is not None else "N/A"
 
     value = (
-        f"{BRAND} was cited in {rate_text} of the {visibility['considered']} response(s) "
+        f"{brand} was cited in {rate_text} of the {visibility['considered']} response(s) "
         f"with a recorded brand_cited value, across {unique_questions} of "
         f"{total_question_count} buyer questions in the library."
     )
@@ -97,12 +100,12 @@ def _finding_overall_visibility(rows: list[dict[str, str]], total_question_count
     return Finding("Overall AI Search Visibility", value, evidence, _confidence_from_ratio(coverage_ratio))
 
 
-def _finding_brand_mention_frequency(rows: list[dict[str, str]]) -> Finding:
+def _finding_brand_mention_frequency(rows: list[dict[str, str]], brand: str) -> Finding:
     visibility = compute_brand_visibility(rows)
     considered = visibility["considered"]
 
     value = (
-        f"{BRAND} was explicitly mentioned in {visibility['y']} of {considered} analysed "
+        f"{brand} was explicitly mentioned in {visibility['y']} of {considered} analysed "
         f"response(s) with a recorded brand_cited value."
     )
     evidence = (
@@ -165,7 +168,7 @@ def _finding_authority_sources(rows: list[dict[str, str]]) -> Finding:
     )
 
 
-def _finding_sentiment_summary(rows: list[dict[str, str]]) -> Finding:
+def _finding_sentiment_summary(rows: list[dict[str, str]], brand: str) -> Finding:
     sentiment = compute_sentiment_summary(rows)
     considered = len(rows) - sentiment["excluded"]
 
@@ -182,7 +185,7 @@ def _finding_sentiment_summary(rows: list[dict[str, str]]) -> Finding:
         key=lambda kv: kv[1],
     )
     value = (
-        f"Sentiment toward {BRAND} was predominantly {dominant[0]} "
+        f"Sentiment toward {brand} was predominantly {dominant[0]} "
         f"({dominant[1]} of {considered} rated response(s)): {sentiment['positive']} Positive, "
         f"{sentiment['neutral']} Neutral, {sentiment['negative']} Negative."
     )
@@ -245,20 +248,23 @@ def _finding_geo_maturity(rows: list[dict[str, str]], total_question_count: int)
     return Finding("Overall GEO Maturity Assessment", value, evidence, _confidence_from_ratio(coverage_ratio))
 
 
-def compute_findings(rows: list[dict[str, str]], total_question_count: int) -> list[Finding]:
+def compute_findings(
+    rows: list[dict[str, str]], total_question_count: int, *, audit_config: AuditConfig | None = None
+) -> list[Finding]:
     """Build all seven structured GEO findings from already-loaded rows.
 
-    Deterministic: the same rows and total_question_count always produce
-    identical findings. Every finding is an observation with its evidence
-    and a confidence level - this function never generates a
-    recommendation.
+    Deterministic: the same rows, total_question_count and audit_config
+    always produce identical findings. Every finding is an observation
+    with its evidence and a confidence level - this function never
+    generates a recommendation. audit_config defaults to the default audit.
     """
+    brand = (audit_config or _DEFAULT_AUDIT_CONFIG).brand
     return [
-        _finding_overall_visibility(rows, total_question_count),
-        _finding_brand_mention_frequency(rows),
+        _finding_overall_visibility(rows, total_question_count, brand),
+        _finding_brand_mention_frequency(rows, brand),
         _finding_competitor_dominance(rows),
         _finding_authority_sources(rows),
-        _finding_sentiment_summary(rows),
+        _finding_sentiment_summary(rows, brand),
         _finding_content_coverage(rows),
         _finding_geo_maturity(rows, total_question_count),
     ]
@@ -270,19 +276,22 @@ def render_markdown(
     unique_questions: int,
     total_question_count: int,
     generated_at: date,
+    *,
+    audit_config: AuditConfig | None = None,
 ) -> str:
     """Render the Markdown GEO findings report purely from an already-
     computed list[Finding] - the structured findings are the source of
-    truth, not this text."""
+    truth, not this text. audit_config defaults to the default audit."""
+    audit_config = audit_config or _DEFAULT_AUDIT_CONFIG
     lines: list[str] = []
-    lines.append("# SignalScope AI GEO Findings Report — Boots UK Health & Beauty")
+    lines.append(f"# SignalScope AI GEO Findings Report — {audit_config.report_subject}")
     lines.append("")
 
     lines.append("## Report Overview")
     lines.append("")
-    lines.append(f"- Brand: {BRAND}")
-    lines.append(f"- Market: {MARKET}")
-    lines.append(f"- Category: {CATEGORY}")
+    lines.append(f"- Brand: {audit_config.brand}")
+    lines.append(f"- Market: {audit_config.market}")
+    lines.append(f"- Category: {audit_config.category}")
     lines.append(f"- Total audit result rows analysed: {total_rows}")
     lines.append(f"- Unique questions represented: {unique_questions} of {total_question_count}")
     lines.append(f"- Report generation date: {generated_at.isoformat()}")
@@ -321,12 +330,18 @@ def render_markdown(
 
 
 def generate_geo_findings(
-    questions_csv_path: str = DEFAULT_QUESTIONS_FILE,
-    results_csv_path: str = DEFAULT_RESULTS_FILE,
-    report_path: str = DEFAULT_FINDINGS_REPORT_FILE,
+    questions_csv_path: str | None = None,
+    results_csv_path: str | None = None,
+    report_path: str | None = None,
     generated_at: date | None = None,
+    *,
+    audit_config: AuditConfig | None = None,
 ) -> tuple[list[Finding], str]:
     """Compute structured findings and render + write the Markdown report.
+
+    audit_config defaults to the default audit; any path left as None is
+    taken from it, so a non-default audit never writes to another
+    audit's files.
 
     Returns (findings, markdown_text). Raises AuditRunnerError for a
     missing/invalid/empty question file, WriteAuditResultError for a
@@ -334,14 +349,23 @@ def generate_geo_findings(
     results file has no data rows (all via the reused report_generator
     loading helpers).
     """
+    audit_config = audit_config or _DEFAULT_AUDIT_CONFIG
+    if questions_csv_path is None:
+        questions_csv_path = audit_config.questions_file
+    if results_csv_path is None:
+        results_csv_path = audit_config.results_file
+    if report_path is None:
+        report_path = audit_config.findings_report_file
     generated_at = generated_at or date.today()
 
     all_questions = load_questions(questions_csv_path)
     rows = load_audit_rows(results_csv_path)
 
-    findings = compute_findings(rows, len(all_questions))
+    findings = compute_findings(rows, len(all_questions), audit_config=audit_config)
     unique_questions = len({r["question_id"] for r in rows if r.get("question_id")})
-    markdown = render_markdown(findings, len(rows), unique_questions, len(all_questions), generated_at)
+    markdown = render_markdown(
+        findings, len(rows), unique_questions, len(all_questions), generated_at, audit_config=audit_config
+    )
 
     out_path = Path(report_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -352,12 +376,20 @@ def generate_geo_findings(
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
-    questions_csv_path = argv[0] if len(argv) > 0 else DEFAULT_QUESTIONS_FILE
-    results_csv_path = argv[1] if len(argv) > 1 else DEFAULT_RESULTS_FILE
-    report_path = argv[2] if len(argv) > 2 else DEFAULT_FINDINGS_REPORT_FILE
+    try:
+        audit_config, argv = parse_audit_arg(argv)
+    except AuditConfigError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    paths = audit_config or _DEFAULT_AUDIT_CONFIG
+    questions_csv_path = argv[0] if len(argv) > 0 else paths.questions_file
+    results_csv_path = argv[1] if len(argv) > 1 else paths.results_file
+    report_path = argv[2] if len(argv) > 2 else paths.findings_report_file
 
     try:
-        findings, _ = generate_geo_findings(questions_csv_path, results_csv_path, report_path)
+        findings, _ = generate_geo_findings(
+            questions_csv_path, results_csv_path, report_path, audit_config=audit_config
+        )
     except (AuditRunnerError, WriteAuditResultError, ReportGeneratorError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1

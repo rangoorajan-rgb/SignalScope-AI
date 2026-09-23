@@ -14,16 +14,21 @@ from collections import Counter
 from datetime import date
 from pathlib import Path
 
+from audit_config import AuditConfig, AuditConfigError, default_audit_config, parse_audit_arg
 from audit_runner import AuditRunnerError, load_questions
 from write_single_audit_result import WriteAuditResultError, load_existing_results
 
-DEFAULT_QUESTIONS_FILE = "audits/boots-uk-health-beauty/buyer_questions.csv"
-DEFAULT_RESULTS_FILE = "audits/boots-uk-health-beauty/audit_results.csv"
-DEFAULT_REPORT_FILE = "reports/boots-uk-health-beauty/audit_report.md"
+# Backwards-compatible aliases for the default audit's values. Functions
+# take an optional audit_config instead of reading these directly.
+_DEFAULT_AUDIT_CONFIG = default_audit_config()
 
-BRAND = "Boots"
-MARKET = "United Kingdom"
-CATEGORY = "Health & Beauty Retail"
+DEFAULT_QUESTIONS_FILE = _DEFAULT_AUDIT_CONFIG.questions_file
+DEFAULT_RESULTS_FILE = _DEFAULT_AUDIT_CONFIG.results_file
+DEFAULT_REPORT_FILE = _DEFAULT_AUDIT_CONFIG.audit_report_file
+
+BRAND = _DEFAULT_AUDIT_CONFIG.brand
+MARKET = _DEFAULT_AUDIT_CONFIG.market
+CATEGORY = _DEFAULT_AUDIT_CONFIG.category
 
 VALID_BRAND_CITED = {"Y", "N"}
 VALID_SENTIMENTS = {"Positive", "Neutral", "Negative"}
@@ -66,13 +71,16 @@ def _parse_semicolon_list(value: str | None) -> list[str]:
     return [item.strip() for item in value.split(";") if item.strip()]
 
 
-def compute_overview(rows: list[dict[str, str]], generated_at: date) -> dict:
+def compute_overview(
+    rows: list[dict[str, str]], generated_at: date, *, audit_config: AuditConfig | None = None
+) -> dict:
+    audit_config = audit_config or _DEFAULT_AUDIT_CONFIG
     engines = sorted({r["engine"] for r in rows if r.get("engine")})
     unique_questions = {r["question_id"] for r in rows if r.get("question_id")}
     return {
-        "brand": BRAND,
-        "market": MARKET,
-        "category": CATEGORY,
+        "brand": audit_config.brand,
+        "market": audit_config.market,
+        "category": audit_config.category,
         "engines": engines,
         "total_rows": len(rows),
         "unique_questions": len(unique_questions),
@@ -169,16 +177,22 @@ def _build_executive_summary(overview: dict, engine_counts: Counter, total_quest
 
 
 def generate_report_markdown(
-    rows: list[dict[str, str]], generated_at: date, total_question_count: int
+    rows: list[dict[str, str]],
+    generated_at: date,
+    total_question_count: int,
+    *,
+    audit_config: AuditConfig | None = None,
 ) -> str:
     """Build the report's Markdown text from already-loaded rows.
 
-    Deterministic: the same rows, generated_at, and total_question_count
-    always produce byte-identical output (all groupings are explicitly
-    sorted; nothing depends on wall-clock time other than generated_at,
-    which is passed in rather than read internally).
+    Deterministic: the same rows, generated_at, total_question_count and
+    audit_config always produce byte-identical output (all groupings are
+    explicitly sorted; nothing depends on wall-clock time other than
+    generated_at, which is passed in rather than read internally).
+    audit_config defaults to the default audit.
     """
-    overview = compute_overview(rows, generated_at)
+    audit_config = audit_config or _DEFAULT_AUDIT_CONFIG
+    overview = compute_overview(rows, generated_at, audit_config=audit_config)
     engine_counts = compute_engine_coverage(rows)
     stage_counts = compute_stage_coverage(rows)
     visibility = compute_brand_visibility(rows)
@@ -188,7 +202,7 @@ def generate_report_markdown(
     sources = compute_mention_frequency(rows, "sources_cited")
 
     lines: list[str] = []
-    lines.append("# SignalScope AI Audit Report — Boots UK Health & Beauty")
+    lines.append(f"# SignalScope AI Audit Report — {audit_config.report_subject}")
     lines.append("")
 
     lines.append("## Audit Overview")
@@ -226,8 +240,8 @@ def generate_report_markdown(
 
     lines.append("## Brand Visibility")
     lines.append("")
-    lines.append(f"- Y (Boots cited): {visibility['y']}")
-    lines.append(f"- N (Boots not cited): {visibility['n']}")
+    lines.append(f"- Y ({audit_config.brand} cited): {visibility['y']}")
+    lines.append(f"- N ({audit_config.brand} not cited): {visibility['n']}")
     lines.append(f"- Brand citation rate: {_format_rate(visibility['rate'])}")
     lines.append(f"- Rows excluded (brand_cited blank): {visibility['excluded']}")
     lines.append("")
@@ -299,25 +313,38 @@ def generate_report_markdown(
 
 
 def generate_report(
-    questions_csv_path: str = DEFAULT_QUESTIONS_FILE,
-    results_csv_path: str = DEFAULT_RESULTS_FILE,
-    report_path: str = DEFAULT_REPORT_FILE,
+    questions_csv_path: str | None = None,
+    results_csv_path: str | None = None,
+    report_path: str | None = None,
     generated_at: date | None = None,
+    *,
+    audit_config: AuditConfig | None = None,
 ) -> str:
     """Load the question library and audit results, build the Markdown
     report, and write it to report_path (creating the directory if
     needed). Returns the report's Markdown text.
 
+    audit_config defaults to the default audit; any path left as None is
+    taken from it, so a non-default audit never writes to another
+    audit's files.
+
     Raises AuditRunnerError for a missing/invalid/empty question file,
     WriteAuditResultError for a missing/schema-invalid results file, or
     ReportGeneratorError if the results file has no data rows.
     """
+    audit_config = audit_config or _DEFAULT_AUDIT_CONFIG
+    if questions_csv_path is None:
+        questions_csv_path = audit_config.questions_file
+    if results_csv_path is None:
+        results_csv_path = audit_config.results_file
+    if report_path is None:
+        report_path = audit_config.audit_report_file
     generated_at = generated_at or date.today()
 
     all_questions = load_questions(questions_csv_path)
     rows = load_audit_rows(results_csv_path)
 
-    markdown = generate_report_markdown(rows, generated_at, len(all_questions))
+    markdown = generate_report_markdown(rows, generated_at, len(all_questions), audit_config=audit_config)
 
     out_path = Path(report_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -328,12 +355,18 @@ def generate_report(
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
-    questions_csv_path = argv[0] if len(argv) > 0 else DEFAULT_QUESTIONS_FILE
-    results_csv_path = argv[1] if len(argv) > 1 else DEFAULT_RESULTS_FILE
-    report_path = argv[2] if len(argv) > 2 else DEFAULT_REPORT_FILE
+    try:
+        audit_config, argv = parse_audit_arg(argv)
+    except AuditConfigError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    paths = audit_config or _DEFAULT_AUDIT_CONFIG
+    questions_csv_path = argv[0] if len(argv) > 0 else paths.questions_file
+    results_csv_path = argv[1] if len(argv) > 1 else paths.results_file
+    report_path = argv[2] if len(argv) > 2 else paths.audit_report_file
 
     try:
-        generate_report(questions_csv_path, results_csv_path, report_path)
+        generate_report(questions_csv_path, results_csv_path, report_path, audit_config=audit_config)
     except (AuditRunnerError, WriteAuditResultError, ReportGeneratorError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
