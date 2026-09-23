@@ -18,6 +18,7 @@ import sys
 import time
 from dataclasses import dataclass, field
 
+from audit_config import AuditConfig, AuditConfigError, default_audit_config, load_audit_config
 from audit_runner import AuditRunnerError, load_questions
 from gemini_client import GeminiClientError, generate_response
 from write_single_audit_result import (
@@ -28,8 +29,10 @@ from write_single_audit_result import (
     write_results_atomically,
 )
 
-DEFAULT_QUESTION_FILE = "audits/boots-uk-health-beauty/buyer_questions.csv"
-DEFAULT_RESULTS_FILE = "audits/boots-uk-health-beauty/audit_results.csv"
+_DEFAULT_AUDIT_CONFIG = default_audit_config()
+
+DEFAULT_QUESTION_FILE = _DEFAULT_AUDIT_CONFIG.questions_file
+DEFAULT_RESULTS_FILE = _DEFAULT_AUDIT_CONFIG.results_file
 TARGET_ENGINE = "Gemini"
 
 # Only these HTTP status codes are treated as temporary/retryable. Anything
@@ -86,13 +89,18 @@ class BatchResult:
 
 
 def run_batch_audit(
-    question_csv_path: str = DEFAULT_QUESTION_FILE,
-    results_csv_path: str = DEFAULT_RESULTS_FILE,
+    question_csv_path: str | None = None,
+    results_csv_path: str | None = None,
     request_delay_seconds: float = DEFAULT_REQUEST_DELAY_SECONDS,
     limit: int | None = None,
     sleep_fn=time.sleep,
+    *,
+    audit_config: AuditConfig | None = None,
 ) -> BatchResult:
     """Process pending questions (up to `limit`, or all of them) through Gemini.
+
+    Any path left as None is taken from audit_config (default: the
+    default audit).
 
     Returns a BatchResult with the question_ids completed, skipped (already
     had a Gemini row before this run), and failed (with their error) during
@@ -103,6 +111,12 @@ def run_batch_audit(
     stop before any question is processed. Per-question Gemini failures are
     caught, logged, and skipped rather than raised.
     """
+    audit_config = audit_config or _DEFAULT_AUDIT_CONFIG
+    if question_csv_path is None:
+        question_csv_path = audit_config.questions_file
+    if results_csv_path is None:
+        results_csv_path = audit_config.results_file
+
     all_questions = load_questions(question_csv_path)
     existing_rows = load_existing_results(results_csv_path)
 
@@ -164,8 +178,17 @@ def run_batch_audit(
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Batch Gemini audit runner for SignalScope AI.")
-    parser.add_argument("--questions", default=DEFAULT_QUESTION_FILE, help="Path to buyer_questions.csv")
-    parser.add_argument("--results", default=DEFAULT_RESULTS_FILE, help="Path to audit_results.csv")
+    parser.add_argument(
+        "--audit",
+        default=None,
+        help="Audit slug under audits/ whose files to use (default: the default audit)",
+    )
+    parser.add_argument(
+        "--questions", default=None, help="Path to buyer_questions.csv (default: the selected audit's file)"
+    )
+    parser.add_argument(
+        "--results", default=None, help="Path to audit_results.csv (default: the selected audit's file)"
+    )
     parser.add_argument(
         "--delay",
         type=float,
@@ -186,11 +209,18 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
 
     try:
+        audit_config = load_audit_config(args.audit) if args.audit is not None else None
+    except AuditConfigError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+    try:
         run_batch_audit(
             question_csv_path=args.questions,
             results_csv_path=args.results,
             request_delay_seconds=args.delay,
             limit=args.limit,
+            audit_config=audit_config,
         )
     except (AuditRunnerError, WriteAuditResultError) as exc:
         print(f"Error: {exc}", file=sys.stderr)

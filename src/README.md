@@ -2,6 +2,19 @@
 
 Contains the application source code implementing the SignalScope AI workflow.
 
+## audit_config.py
+
+Loads and validates one audit's `audits/<slug>/audit_config.json` into a frozen
+`AuditConfig` (brand, company name, report subject, market, category, ordered
+competitors, question library name) and derives that audit's standard file paths from
+its slug. `default_audit_config()` returns the default audit
+(`boots-uk-health-beauty`), which every engine and runner uses when no audit is
+selected. `parse_audit_arg()` implements the shared `--audit SLUG` command-line
+option. See the "Audit Configuration" section of the [README](../README.md).
+
+Corresponding tests are in
+[tests/test_audit_config.py](../tests/test_audit_config.py).
+
 ## audit_runner.py
 
 The first working layer of the audit runner (see
@@ -17,11 +30,12 @@ remain future work.
 Run it with:
 
 ```
-python src/audit_runner.py [path/to/buyer_questions.csv]
+python src/audit_runner.py [path/to/buyer_questions.csv] [--audit SLUG]
 ```
 
-If no path is given, it defaults to
-`audits/boots-uk-health-beauty/buyer_questions.csv`.
+If no path is given, it defaults to the selected audit's `buyer_questions.csv`
+(without `--audit`, the default audit:
+`audits/boots-uk-health-beauty/buyer_questions.csv`).
 
 Corresponding tests are in
 [tests/test_audit_runner.py](../tests/test_audit_runner.py).
