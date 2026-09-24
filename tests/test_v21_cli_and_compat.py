@@ -588,7 +588,7 @@ class StreamlitDashboardTests(unittest.TestCase):
         sidebar = " ".join(m.value for m in app.sidebar.markdown)
         self.assertIn("**Brand:** Boots UK", sidebar)
         self.assertIn("**Industry:** Health & Beauty Retail", sidebar)
-        self.assertIn("**Version:** 2.1.0", sidebar)
+        self.assertRegex(sidebar, r"\*\*Version:\*\* \d+\.\d+\.\d+\b")
 
         body = " ".join(m.value for m in app.markdown)
         self.assertIn("**Country**  \nUnited Kingdom", body)

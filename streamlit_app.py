@@ -88,7 +88,7 @@ with st.sidebar:
 
     st.write(f"**Brand:** {AUDIT_CONFIG.company_name}")
     st.write(f"**Industry:** {AUDIT_CONFIG.category}")
-    st.write("**Version:** 2.1.0")
+    st.write("**Version:** 2.2.0")
     st.write("**Audit provider:** Google Gemini")
 
     if st.button("Refresh dashboard"):

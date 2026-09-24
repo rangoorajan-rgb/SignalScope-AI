@@ -4,11 +4,32 @@ Automated tests covering the SignalScope AI workflow's source code in
 [src/](../src/). All tests use Python's built-in `unittest` module, never call the
 real Gemini API, and never write to the committed audit data or reports.
 
-Run the complete suite from the repository root with:
+Run the complete suite (484 tests) from the repository root with:
 
 ```
 python -m unittest discover -s tests -v
 ```
+
+## v2.2 audit creation tests
+
+- `test_create_audit.py` — `src/create_audit.py`:
+  - input validation (exactly three competitors, brand not a competitor, whitespace,
+    line breaks, control characters, brackets, slug format) and master template
+    validation (columns, IDs, stages, placeholders);
+  - deterministic question generation for a fictional client with `&`, apostrophes,
+    accents, commas and quotes, including an exact CSV round trip;
+  - Boots recreation: generating Boots from its config reproduces the committed
+    `audit_config.json` and `buyer_questions.csv` byte for byte;
+  - on-disk creation, refusal of an existing audit or report folder (including Boots),
+    rollback after failures injected at every write, the staged check and the final
+    rename, and dry runs that write nothing;
+  - the CLI, and immediate use of a new audit with the existing `--audit` runners;
+  - release governance: the `.gitignore` client-data rules (checked with
+    `git check-ignore`), the dashboard version, and no client literals in the module.
+
+  Every workspace is created under a temporary directory; the real `audits/`,
+  `reports/` and master template are verified unchanged after each test, and the Gemini
+  SDK is blocked.
 
 ## v2.1 multi-company tests
 

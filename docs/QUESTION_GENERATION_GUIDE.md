@@ -3,8 +3,10 @@
 This guide explains how to use and maintain the buyer question library at
 [questions/buyer_questions_master.csv](../questions/buyer_questions_master.csv) (and
 its `.xlsx` equivalent). It is a consulting reference document, not a technical
-specification: it describes how a consultant should work with the library, not how any
-part of it is built or automated.
+specification: it describes how a consultant should work with the library. Since v2.2,
+the mechanical placeholder replacement is done by `src/create_audit.py` (see
+[How to Generate a Client Question Set](#how-to-generate-a-client-question-set)); the
+review and governance steps remain the consultant's responsibility.
 
 ## Purpose of the Question Library
 
@@ -61,37 +63,62 @@ reasons:
   only means it can be stored, reviewed and version-controlled without any
   confidentiality concern.
 
-## How to Replace Placeholders for a Real Audit
+## How to Generate a Client Question Set
 
-1. **Do not edit the master file.** Copy `buyer_questions_master.csv` (or `.xlsx`) to
-   a working file for the specific engagement — for example, into
-   [data/input/](../data/input/) — and edit the copy. The master stays a clean,
-   placeholder-only template for the next audit.
-2. **Confirm all six values before starting**, agreed with the client per
+Since v2.2 the client's question set is generated, not copied and edited by hand:
+
+1. **Agree the audit scope with the client** per
    [AUDIT_SPECIFICATION.md](AUDIT_SPECIFICATION.md): the brand name (`[BRAND]`), the
    category as the client would recognise it (`[CATEGORY]`), the target market
-   (`[MARKET]`), and the three competitors selected under the
+   (`[MARKET]`), and exactly three competitors selected under the
    [competitor selection criteria](AUDIT_SPECIFICATION.md#8-competitor-selection-criteria)
-   (`[COMPETITOR_1]`–`[COMPETITOR_3]`).
-3. **Use a consistent find-and-replace pass** across the whole file for each
-   placeholder in turn, rather than editing questions individually — this avoids
-   missing an instance or introducing inconsistent naming partway through the file.
-4. **Keep the wording of the question unchanged** wherever possible. The questions
-   have been written and reviewed as natural, conversational phrasing; changing wording
-   as well as placeholders makes it harder to compare results against other audits
-   that used the standard library.
-5. **Re-read every question once replacement is complete**, to catch anything that no
-   longer reads naturally once real names are inserted (for example, a category name
-   that does not fit the sentence grammatically) — see [Validation](#how-to-validate-generated-questions)
-   below.
+   (`[COMPETITOR_1]`–`[COMPETITOR_3]`, in that order), plus the display values the
+   audit also needs (company name, report subject and question library name).
+2. **Create the audit workspace** from the repository root, optionally with
+   `--dry-run` first to check the input without writing anything:
+
+   ```
+   python src/create_audit.py --slug <slug> --brand "<brand>" --company-name "<name>" \
+     --report-subject "<subject>" --market "<market>" --category "<category>" \
+     --competitor "<first>" --competitor "<second>" --competitor "<third>" \
+     --question-library "<library name>"
+   ```
+
+   This writes `audits/<slug>/buyer_questions.csv` (alongside `audit_config.json` and a
+   header-only `audit_results.csv`). See the "Creating a New Audit" section of the
+   [README](../README.md) for the full behaviour.
+3. **Review the generated questions** in `audits/<slug>/buyer_questions.csv` against
+   [How to Validate Generated Questions](#how-to-validate-generated-questions) below,
+   including the second-reviewer step.
+4. **Record any agreed deviation.** If a question genuinely needs rewording, adding or
+   dropping for this engagement, edit the generated file (never the master) and record
+   the deviation — see [Common Mistakes to Avoid](#common-mistakes-to-avoid).
+5. **Run the audit** with the existing `--audit <slug>` workflow.
+
+How the generation works:
+
+- **Deterministic replacement.** Each of the six bracketed placeholders is replaced
+  with the supplied value, in every column, in a single pass. Question IDs, buyer
+  journey stages, question order and all other text are unchanged. Unbracketed labels
+  such as `BRAND` or `COMPETITOR_1` in the `intent` and `notes` columns describe which
+  placeholders a question uses; they are left as they are.
+- **No LLM is used** to generate or reword the client question set.
+- **The master template is never modified.** It is only read.
+- **Exactly three competitors are required** in v2.2, because the template uses
+  `[COMPETITOR_1]` to `[COMPETITOR_3]`.
+- **Invalid input is rejected before anything is written**, including square brackets
+  in any value, and the generated file is checked for unresolved placeholders.
+- **Deferred:** variable competitor counts and alternative or industry-specific
+  question templates are not supported yet.
 
 ## How to Validate Generated Questions
 
 Before a replaced (real-world) question set is used to collect evidence, check it
 against the following:
 
-- **No placeholders remain.** Search the completed file for any remaining `[` or `]`
-  characters — every placeholder should have been replaced.
+- **No placeholders remain.** `create_audit.py` refuses to write a question set that
+  still contains `[` or `]`; if the generated file is edited afterwards, search it
+  again for any remaining `[` or `]` characters.
 - **The question reads naturally.** Read each question aloud. It should sound like
   something a real person would type into a conversational AI tool, not like a
   templated sentence with words dropped in.
@@ -115,10 +142,12 @@ against the following:
 - **Editing the master file directly.** This erodes the library over time and leaves
   no clean template for the next engagement.
 - **Leaving a placeholder unreplaced**, most often `[MARKET]` or a `[COMPETITOR_n]`
-  value in a question that is easy to skim past.
+  value in a question that is easy to skim past. Generation prevents this; it remains
+  a risk when a generated file is edited by hand.
 - **Replacing placeholders inconsistently** — for example, using a brand's full legal
   name in some questions and a shortened or informal name in others, which can affect
-  how an AI platform responds.
+  how an AI platform responds. Generation uses each supplied value everywhere; agree
+  the exact form of each name with the client before creating the audit.
 - **Turning a question back into a keyword search** when adapting it — for example,
   simplifying "How does [BRAND] compare to [COMPETITOR_1] for [CATEGORY]?" down to
   "[BRAND] vs [COMPETITOR_1] [CATEGORY]". This works against the independent query
@@ -149,8 +178,8 @@ against the following:
   evolve, check the question set still reflects the current buyer journey framework
   and independent query methodology.
 - **Keep questions placeholder-only in the master.** Any engagement-specific, replaced
-  version belongs with that engagement's evidence (see
-  [data/input/](../data/input/)), never back in the shared master library.
+  version belongs with that engagement's evidence in its `audits/<slug>/` workspace
+  (which Git ignores for client audits), never back in the shared master library.
 
 ## Buyer Journey Stage Naming
 

@@ -6,9 +6,9 @@
 
 **Measure AI Visibility • Generate Explainable Insights • Prioritise Optimisation • Measure Improvement**
 
-![Version](https://img.shields.io/badge/version-v2.1.0-blue)
+![Version](https://img.shields.io/badge/version-v2.2.0-blue)
 ![Python](https://img.shields.io/badge/python-3.11+-3776AB?logo=python&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-270%2B-brightgreen)
+![Tests](https://img.shields.io/badge/tests-484-brightgreen)
 ![Architecture](https://img.shields.io/badge/architecture-modular-orange)
 ![Status](https://img.shields.io/badge/status-complete-success)
 
@@ -18,7 +18,7 @@ SignalScope AI is an evidence-first GEO intelligence platform that helps organis
 
 Instead of attempting to automatically optimise websites, SignalScope AI measures AI visibility, analyses evidence, generates explainable optimisation recommendations and measures improvement over time.
 
-**Version:** 2.1.0
+**Version:** 2.2.0
 
 </div>
 
@@ -28,26 +28,32 @@ Instead of attempting to automatically optimise websites, SignalScope AI measure
 
 - Executive Summary
 - Why SignalScope AI Exists
-- The GEO Problem
 - Product Overview
 - Project Highlights
 - Quick Start
 - Streamlit Dashboard
+- Creating a New Audit
 - Architecture Overview
-- GEO Workflow
-- Core Engines
+- Technology Stack
 - Repository Structure
-- Installation
-- Running the Project
+- End-to-End Workflow
+- Core Engines
+  - Audit Engine
+  - Insights Engine
+  - Recommendation Engine
+  - Measurement Engine
+- Reporting
 - Testing
 - Example Outputs
 - Engineering Philosophy
-- Design Decisions
-- AI Trust Boundaries
-- Limitations
-- Roadmap
-- Portfolio Summary
-- Author
+- AI Design Principles
+- Key Design Decisions
+- Current Limitations
+- Future Roadmap
+- Portfolio Value
+- Lessons Learned
+- About the Author
+- Acknowledgements
 - License
 
 ---
@@ -173,7 +179,7 @@ Artificial Intelligence is reserved for tasks that genuinely benefit from reason
 
 - Modular architecture
 - Four independent processing engines
-- 270+ automated tests
+- 484 automated tests
 - Deterministic analytics
 - Explainable AI workflow
 - Structured Markdown reporting
@@ -237,6 +243,8 @@ Every command-line entry point runs the default Boots UK demonstration audit unl
 python src/report_generator.py --audit boots-uk-health-beauty
 ```
 
+To set up an audit for another company, see [Creating a New Audit](#creating-a-new-audit).
+
 Run all automated tests.
 
 ```bash
@@ -263,13 +271,15 @@ The dashboard provides:
 
 The dashboard is intentionally read-only. It does not modify audit data, execute new audits or regenerate reports. It only reads and displays the CSV audit results and Markdown reports that the four engines have already generated.
 
-In v2.1 the dashboard displays the default audit only. Its project metadata and file locations come from that audit's `audit_config.json`; there is no client selector yet.
+The dashboard displays the default audit only. Its project metadata and file locations come from that audit's `audit_config.json`; there is no client selector yet.
 
 ## Project Scope
 
 The bundled demonstration engagement is **Boots UK**, in the Health & Beauty Retail category, within the United Kingdom market, benchmarked against Superdrug, Amazon and Holland & Barrett. It remains the default audit for every command and for the dashboard.
 
-Since v2.1, SignalScope AI provides a **multi-company audit foundation**: the Audit, Insights, Recommendation and Measurement Engines are no longer tied to one company and can run any audit that has its own configuration file. This is a foundation for reusable client audits, **not a production SaaS product**. v2.1 has no persistent database, no scheduled monitoring, no authentication or user accounts, no client selector in the dashboard and no automatic generation of a client's question set from the master library.
+Since v2.1, SignalScope AI provides a **multi-company audit foundation**: the Audit, Insights, Recommendation and Measurement Engines are no longer tied to one company and can run any audit that has its own configuration file. Since v2.2, an operator can create a new client audit workspace with one command (see [Creating a New Audit](#creating-a-new-audit)).
+
+SignalScope AI remains an **operator-assisted audit system, not a SaaS product**. It has no complete structured batch audit across all 40 questions yet, no audit snapshots or history, no scheduled monitoring, no persistent database, no authentication or user accounts, no billing, no client self-service and no client selector in the dashboard.
 
 ## Audit Configuration
 
@@ -307,7 +317,7 @@ python src/run_batch_audit.py --audit <slug> --limit 5
 python src/measurement_engine.py <baseline.csv> <followup.csv> --audit <slug>
 ```
 
-To prepare a new audit today, create `audits/<slug>/` with an `audit_config.json` and a `buyer_questions.csv` substituted by hand from [questions/buyer_questions_master.csv](questions/buyer_questions_master.csv) (see [docs/QUESTION_GENERATION_GUIDE.md](docs/QUESTION_GENERATION_GUIDE.md)), plus an `audit_results.csv` containing the 11-column header.
+New audits are created with `src/create_audit.py` rather than by hand (see [Creating a New Audit](#creating-a-new-audit)).
 
 The root-level `config.py` is kept only as a backwards-compatible shim that re-exposes the default audit's values; edit an audit's `audit_config.json` instead.
 
@@ -318,6 +328,66 @@ python -m streamlit run streamlit_app.py
 ```
 
 The dashboard opens in your browser and reads directly from the existing `audits/` and `reports/` directories — running it does not trigger a new audit.
+
+---
+
+# Creating a New Audit
+
+Since v2.2, an operator creates a complete, immediately usable audit workspace for a new client with one command, run from the repository root:
+
+```bash
+python src/create_audit.py \
+  --slug acme-uk-garden \
+  --brand "Acme" \
+  --company-name "Acme Ltd" \
+  --report-subject "Acme Ltd Garden Supplies" \
+  --market "United Kingdom" \
+  --category "Garden Supplies Retail" \
+  --competitor "Competitor One" \
+  --competitor "Competitor Two" \
+  --competitor "Competitor Three" \
+  --question-library "Standard GEO Buyer Question Library"
+```
+
+All eight values are required and are never derived from one another:
+
+| Option | Meaning |
+|---|---|
+| `--slug` | Audit folder name: lowercase letters, digits and single hyphens |
+| `--brand` | The name the Audit Engine looks for in AI answers |
+| `--company-name` | Display name |
+| `--report-subject` | Report title subject |
+| `--market` | Geographic or language market |
+| `--category` | Category the brand competes in |
+| `--competitor` | Given **exactly three times**; the order maps to `[COMPETITOR_1]`–`[COMPETITOR_3]` |
+| `--question-library` | Question library display name |
+
+Add `--dry-run` to run every check and show what would be created without writing anything.
+
+The command creates exactly:
+
+```text
+audits/<slug>/
+  audit_config.json     # the eight values above
+  buyer_questions.csv   # generated from questions/buyer_questions_master.csv
+  audit_results.csv     # header only, no results yet
+```
+
+- **Questions are generated deterministically.** The six placeholders in the master template are replaced with the supplied values; question IDs, buyer journey stages and order are unchanged, and no LLM is involved. The master template is never modified. See [docs/QUESTION_GENERATION_GUIDE.md](docs/QUESTION_GENERATION_GUIDE.md) for the human review that should follow.
+- **Input is validated strictly** before anything is written: blank values, surrounding whitespace, line breaks, control characters and square brackets are rejected, competitors must be distinct, and the brand must not also be a competitor.
+- **Existing audits are never overwritten.** If `audits/<slug>/` or `reports/<slug>/` already exists, the command refuses. There is no `--force` option.
+- **Creation is all-or-nothing.** Files are written to a temporary staging folder, checked with the same loaders the rest of SignalScope AI uses, and then moved into place in one step. If anything fails, no partial audit is left behind.
+- **Report folders are created later**, when reports are first generated for the audit.
+- **Client data stays out of Git.** `.gitignore` ignores every folder under `audits/` and `reports/` except the Boots UK demonstration audit, which remains tracked.
+
+The new audit can be used immediately with the existing `--audit` workflow:
+
+```bash
+python src/audit_runner.py --audit acme-uk-garden
+python src/run_batch_audit.py --audit acme-uk-garden --limit 5
+```
+
+v2.2 creates the workspace; it does not yet run a complete structured audit across all 40 questions. `run_batch_audit.py` records answers without the structured brand, competitor, source and sentiment fields, and the structured runners each process a single question. Structured batch evidence collection is planned for v2.3.
 
 ---
 
@@ -401,6 +471,7 @@ SignalScope-AI/
 │
 ├── src/
 │   ├── audit_config.py              # Per-audit configuration loader and --audit parsing
+│   ├── create_audit.py              # Creates a new audit workspace (operator CLI)
 │   ├── audit_runner.py              # Loads and validates the buyer question library
 │   ├── gemini_client.py             # Minimal Gemini API wrapper
 │   ├── response_analyzer.py         # Structured extraction from a raw AI response
@@ -1071,7 +1142,7 @@ Rather than relying solely on manual testing, SignalScope AI includes an extensi
 
 ## Test Coverage
 
-The project contains over **270 automated tests**, including:
+The project contains **484 automated tests**, including:
 
 - unit tests
 - integration tests
@@ -1088,6 +1159,8 @@ v2.1 added three regression safeguards:
 - **Golden-master tests** regenerate the deterministic Boots reports and require them to match the committed reports byte for byte, and pin the recommendations renderer's output.
 - **Multi-client tests** run the complete workflow for a fictional company, entirely in temporary directories with Gemini mocked, and require that no Boots value leaks into its output.
 - **A static guard** fails if client-specific business values are written as literals in reusable production code.
+
+v2.2 added audit-creation tests: generating the Boots workspace from its configuration and the master template reproduces the committed Boots `audit_config.json` and `buyer_questions.csv` byte for byte, and fictional-client tests cover validation, collision refusal, rollback after injected failures, dry runs, the CLI and immediate `--audit` use. No test calls the Gemini API.
 
 ---
 
@@ -1299,12 +1372,31 @@ Current limitations include:
 - no web interface
 - no authentication
 - no scheduled monitoring
+- no complete structured batch audit across all 40 questions yet (planned for v2.3)
+- new audits require exactly three competitors and use the single master question template
+
+Two operational points apply in v2.2:
+
+- **Run commands from the repository root.** `create_audit.py` always writes to the project's own `audits/` folder, but the existing `--audit` runners resolve audit and report paths relative to the current working directory.
+- **Leftover staging folders.** A failed or interrupted (Ctrl-C) audit creation cleans up after itself. Only a hard process kill can leave an `audits/.creating-<slug>-*` folder behind; it is not a valid audit and can be deleted manually.
 
 These limitations were accepted in favour of demonstrating software architecture and engineering quality.
 
 ---
 
 # Future Roadmap
+
+## Version Roadmap
+
+| Version | Focus | Status |
+|---|---|---|
+| v2.1 | Multi-company configuration foundation | Released |
+| v2.2 | Repeatable client audit creation | This release |
+| v2.3 | Structured batch evidence collection | Planned |
+| v2.4 | Audit snapshots and longitudinal history | Planned |
+| v2.5 | Recurring monitoring workflow | Planned |
+
+Later platform work (database, scheduling, a multi-project interface, authentication and cloud deployment, with billing and client self-service only when justified) is not yet scheduled.
 
 Potential future enhancements include:
 
@@ -1415,7 +1507,7 @@ See the accompanying `LICENSE` file for full details.
 
 <div align="center">
 
-**SignalScope AI v2.0.0**
+**SignalScope AI v2.2.0**
 
 *Evidence-Driven Generative Engine Optimisation Intelligence Platform*
 
