@@ -6,6 +6,62 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 project will adhere to [Semantic Versioning](https://semver.org/) once a first
 functional release exists.
 
+## [2.2.0] — 2026-09-24
+
+Repeatable client audit creation. An operator can now create a complete, immediately
+usable audit workspace for a new client with one command. Existing audit, report and
+engine behaviour is unchanged, and the Boots UK Health & Beauty audit remains the
+default.
+
+### Added
+
+- `src/create_audit.py`, the audit creation module and operator CLI
+  (`python src/create_audit.py --slug … --brand … --company-name … --report-subject …
+  --market … --category … --competitor … ×3 --question-library … [--dry-run]`). It
+  creates `audits/<slug>/audit_config.json`, `buyer_questions.csv` and a header-only
+  `audit_results.csv`.
+- Deterministic buyer-question generation: the six placeholders in
+  `questions/buyer_questions_master.csv` are replaced in a single pass in every column,
+  preserving question IDs, stages and order. No LLM is used, and the master template is
+  only read. The master template itself is validated (exact columns, unique IDs, known
+  stages, supported and well-formed placeholders).
+- Creation-time input rules on top of the v2.1 config rules: exactly three
+  competitors, the brand not listed as a competitor, and no surrounding whitespace,
+  line breaks, control characters or square brackets in any value.
+- Collision protection: creation refuses if `audits/<slug>/` or `reports/<slug>/`
+  already exists. There is no overwrite option.
+- Staged, rollback-safe creation: files are written to a temporary `.creating-*` folder
+  inside `audits/`, reloaded with the existing production loaders, then published with
+  a single rename. Any failure removes the staging folder and leaves no partial audit.
+- `--dry-run`: performs every check, including collision checks, and writes nothing.
+- Client-data ignore policy in `.gitignore`: folders under `audits/` and `reports/` are
+  ignored except the Boots UK demonstration audit, which remains tracked.
+- Tests: `tests/test_create_audit.py`, covering validation, template checks, question
+  generation, byte-for-byte recreation of the committed Boots `audit_config.json` and
+  `buyer_questions.csv`, collision refusal, rollback after injected failures, dry runs,
+  the CLI, immediate `--audit` use, and release governance. No test calls Gemini.
+
+### Changed
+
+- `src/audit_config.py`: new public `validate_audit_config_data()` validates an
+  in-memory config with exactly the rules `load_audit_config()` applies. The loader's
+  behaviour and the 8-field schema are unchanged.
+- The Streamlit dashboard shows version 2.2.0.
+- `tests/test_v21_cli_and_compat.py`: the dashboard test now checks that a version
+  number is shown rather than pinning 2.1.0; the exact version is checked in
+  `tests/test_create_audit.py`.
+- Documentation: README (new "Creating a New Audit" section, version roadmap,
+  limitations, corrected table of contents and test counts), the question generation
+  guide (generation replaces the manual copy-and-replace steps; review steps kept),
+  `CURRENT_SPRINT.md`, `src/README.md` and `tests/README.md`.
+
+### Not included
+
+- Structured batch evidence collection across all 40 questions (planned for v2.3).
+- Audit snapshots and history, scheduled monitoring, a database, authentication,
+  billing, client self-service or any SaaS functionality.
+- Variable competitor counts and alternative question templates.
+
 ## [2.1.0] — 2026-09-23
 
 Multi-company audit foundation. The existing Boots UK Health & Beauty audit remains

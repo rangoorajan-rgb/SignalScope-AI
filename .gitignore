@@ -36,6 +36,15 @@ data/output/*
 !data/input/.gitkeep
 !data/output/.gitkeep
 
+# Real client audit workspaces (created by src/create_audit.py) and their
+# reports stay local. Only the Boots UK demonstration audit is committed.
+audits/*
+!audits/boots-uk-health-beauty/
+!audits/boots-uk-health-beauty/**
+reports/*
+!reports/boots-uk-health-beauty/
+!reports/boots-uk-health-beauty/**
+
 # --- Testing and coverage ---
 .pytest_cache/
 .coverage

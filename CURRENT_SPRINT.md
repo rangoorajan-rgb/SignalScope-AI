@@ -1,10 +1,78 @@
 # Current Sprint
 
-## v2.1 — Multi-Company Foundation
+## v2.2 — Repeatable Client Audit Creation
 
 **Status:** Complete (implementation verified; awaiting owner review and commit)
 
-### Baseline: v2.0.0
+### Baseline: v2.1.0
+
+v2.1.0 made the Audit, Insights, Recommendation and Measurement Engines, the runners and
+the dashboard configuration-driven: each audit is described by
+`audits/<slug>/audit_config.json` and selected with `--audit SLUG`, with Boots UK as the
+default (395 tests). But creating a new audit was still manual: making the folder,
+writing the JSON by hand, copying the master question file and replacing its
+placeholders, and creating a results file with the exact header.
+
+### Objective
+
+Turn the v2.1 configuration foundation into a repeatable, safe client audit creation
+workflow, without changing any existing audit, report or engine behaviour.
+
+### Delivered
+
+- **Checkpoint A — validation and in-memory generation.** A public
+  `validate_audit_config_data()` in `src/audit_config.py` reuses the v2.1 config rules.
+  `src/create_audit.py` adds the creation-only input rules (exactly three competitors,
+  brand not a competitor, no surrounding whitespace, line breaks, control characters or
+  square brackets), master template validation, single-pass placeholder substitution
+  across all columns, and CSV serialisation in the existing file format. Generating
+  Boots from its config reproduces the committed Boots question file byte for byte.
+- **Checkpoint B — safe workspace creation and CLI.** `create_audit_workspace()` and the
+  `python src/create_audit.py` operator CLI create `audit_config.json`,
+  `buyer_questions.csv` and a header-only `audit_results.csv` through a staging folder,
+  a check with the existing loaders and a single rename. It refuses existing audit or
+  report folders, rolls back on any failure, and supports `--dry-run`. A new audit is
+  immediately usable with the existing `--audit` runners.
+- **Checkpoint C — governance, documentation and release.** `.gitignore` keeps client
+  audit and report folders out of Git while the Boots demonstration audit stays tracked.
+  The dashboard shows version 2.2.0. The README, question generation guide, changelog
+  and module READMEs describe the workflow, its limitations and the version roadmap.
+- **Test protection.** 484 tests pass: the 395 from v2.1 plus 89 audit-creation tests
+  (validation, template checks, generation, Boots recreation, collision refusal,
+  rollback after injected failures, dry runs, CLI, `--audit` usability, governance).
+  One v2.1 dashboard assertion was relaxed from pinning version 2.1.0 to checking that a
+  version is shown; the exact version is checked in the new tests. No test calls Gemini.
+
+### Known limitations
+
+- Commands must be run from the repository root: `create_audit.py` always writes to the
+  project's `audits/` folder, but the existing `--audit` runners resolve paths relative
+  to the current directory.
+- A hard process kill during creation can leave an `audits/.creating-<slug>-*` staging
+  folder. It is not a valid audit and can be deleted manually.
+
+### Deferred
+
+- v2.3: structured batch evidence collection across all 40 questions (the batch runner
+  currently records answers without structured fields, and the structured runners each
+  process one question).
+- v2.4: audit snapshots and longitudinal history.
+- v2.5: recurring monitoring workflow.
+- Later platform work: database, scheduling, multi-project interface, authentication,
+  cloud deployment; billing and client self-service only when justified.
+- Not planned for a specific version yet: variable competitor counts, alternative
+  question templates, a dashboard audit selector.
+
+---
+
+## Previous release records
+
+### v2.1 — Multi-Company Foundation
+
+**Status:** Released as v2.1.0. Recorded as written at release; its deferred list
+reflects the roadmap at that time.
+
+#### Baseline: v2.0.0
 
 v2.0.0 is the working SignalScope AI prototype: the Audit, Insights, Recommendation and
 Measurement Engines, Markdown reporting, a read-only Streamlit dashboard and an
@@ -12,14 +80,14 @@ automated `unittest` suite (291 tests), demonstrated on the Boots UK Health & Be
 audit. In v2.0 the Boots client values and folder paths were hardcoded across the
 engines, runners and dashboard.
 
-### Objective
+#### Objective
 
 Remove company-specific coupling from the application so that the existing audit,
 insights, recommendation, measurement and reporting workflow runs from a central
 client/audit configuration, without changing the behaviour of the existing Boots
 implementation.
 
-### Delivered
+#### Delivered
 
 - **Configuration generalisation.** Each audit has an `audits/<slug>/audit_config.json`
   loaded and validated by `src/audit_config.py`. All engines and runners accept an
@@ -39,7 +107,7 @@ Implemented in three reviewed checkpoints: (A) safety net and configuration foun
 (B) core engine parameterisation, (C) runners, `--audit` CLI, dashboard, compatibility
 shim and documentation.
 
-### Deferred to v2.2 and later
+#### Deferred to v2.2 and later
 
 - v2.2: reusable client audit workflow — generating a client's `buyer_questions.csv`
   from the master library, client onboarding, a dashboard audit selector.

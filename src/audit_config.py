@@ -98,7 +98,7 @@ class AuditConfig:
         return f"{self.reports_dir}/GEO_PROGRESS.md"
 
 
-def _validate(data: object, slug: str, config_path: Path) -> AuditConfig:
+def _validate(data: object, slug: object, config_path: str | Path) -> AuditConfig:
     if not isinstance(data, dict):
         raise AuditConfigError(f"Audit config must be a JSON object: {config_path}")
 
@@ -150,6 +150,27 @@ def _validate(data: object, slug: str, config_path: Path) -> AuditConfig:
     )
 
 
+def _check_slug(slug: object) -> None:
+    if not isinstance(slug, str) or not _SLUG_PATTERN.match(slug):
+        raise AuditConfigError(
+            f"Invalid audit slug {slug!r}: use lowercase letters, digits and single hyphens only."
+        )
+
+
+def validate_audit_config_data(data: object, *, source: str = "in-memory audit config") -> AuditConfig:
+    """Validate an in-memory audit config mapping without reading or
+    writing any file, applying exactly the rules load_audit_config applies
+    to audit_config.json (including the slug format). source names the
+    data in error messages.
+
+    Returns the validated AuditConfig. Raises AuditConfigError otherwise.
+    """
+    slug = data.get("slug") if isinstance(data, dict) else None
+    config = _validate(data, slug, source)
+    _check_slug(config.slug)
+    return config
+
+
 def load_audit_config(slug: str, *, audits_dir: str | Path | None = None) -> AuditConfig:
     """Load and validate audits/<slug>/audit_config.json.
 
@@ -160,10 +181,7 @@ def load_audit_config(slug: str, *, audits_dir: str | Path | None = None) -> Aud
     Raises AuditConfigError for an invalid slug, an unknown audit, a
     missing config file, malformed JSON, or any missing/invalid field.
     """
-    if not isinstance(slug, str) or not _SLUG_PATTERN.match(slug):
-        raise AuditConfigError(
-            f"Invalid audit slug {slug!r}: use lowercase letters, digits and single hyphens only."
-        )
+    _check_slug(slug)
 
     base = Path(audits_dir) if audits_dir is not None else AUDITS_DIR
     audit_dir = base / slug
