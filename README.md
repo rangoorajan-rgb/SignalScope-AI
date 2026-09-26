@@ -6,9 +6,9 @@
 
 **Measure AI Visibility • Generate Explainable Insights • Prioritise Optimisation • Measure Improvement**
 
-![Version](https://img.shields.io/badge/version-v2.2.0-blue)
+![Version](https://img.shields.io/badge/version-v2.3.0-blue)
 ![Python](https://img.shields.io/badge/python-3.11+-3776AB?logo=python&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-484-brightgreen)
+![Tests](https://img.shields.io/badge/tests-568-brightgreen)
 ![Architecture](https://img.shields.io/badge/architecture-modular-orange)
 ![Status](https://img.shields.io/badge/status-complete-success)
 
@@ -18,7 +18,7 @@ SignalScope AI is an evidence-first GEO intelligence platform that helps organis
 
 Instead of attempting to automatically optimise websites, SignalScope AI measures AI visibility, analyses evidence, generates explainable optimisation recommendations and measures improvement over time.
 
-**Version:** 2.2.0
+**Version:** 2.3.0
 
 </div>
 
@@ -33,6 +33,7 @@ Instead of attempting to automatically optimise websites, SignalScope AI measure
 - Quick Start
 - Streamlit Dashboard
 - Creating a New Audit
+- Collecting Structured Evidence
 - Architecture Overview
 - Technology Stack
 - Repository Structure
@@ -179,7 +180,7 @@ Artificial Intelligence is reserved for tasks that genuinely benefit from reason
 
 - Modular architecture
 - Four independent processing engines
-- 484 automated tests
+- 568 automated tests
 - Deterministic analytics
 - Explainable AI workflow
 - Structured Markdown reporting
@@ -243,7 +244,7 @@ Every command-line entry point runs the default Boots UK demonstration audit unl
 python src/report_generator.py --audit boots-uk-health-beauty
 ```
 
-To set up an audit for another company, see [Creating a New Audit](#creating-a-new-audit).
+To set up an audit for another company, see [Creating a New Audit](#creating-a-new-audit), then [Collecting Structured Evidence](#collecting-structured-evidence).
 
 Run all automated tests.
 
@@ -277,9 +278,9 @@ The dashboard displays the default audit only. Its project metadata and file loc
 
 The bundled demonstration engagement is **Boots UK**, in the Health & Beauty Retail category, within the United Kingdom market, benchmarked against Superdrug, Amazon and Holland & Barrett. It remains the default audit for every command and for the dashboard.
 
-Since v2.1, SignalScope AI provides a **multi-company audit foundation**: the Audit, Insights, Recommendation and Measurement Engines are no longer tied to one company and can run any audit that has its own configuration file. Since v2.2, an operator can create a new client audit workspace with one command (see [Creating a New Audit](#creating-a-new-audit)).
+Since v2.1, SignalScope AI provides a **multi-company audit foundation**: the Audit, Insights, Recommendation and Measurement Engines are no longer tied to one company and can run any audit that has its own configuration file. Since v2.2, an operator can create a new client audit workspace with one command (see [Creating a New Audit](#creating-a-new-audit)), and since v2.3 collect structured evidence for all of its questions with one resumable command (see [Collecting Structured Evidence](#collecting-structured-evidence)).
 
-SignalScope AI remains an **operator-assisted audit system, not a SaaS product**. It has no complete structured batch audit across all 40 questions yet, no audit snapshots or history, no scheduled monitoring, no persistent database, no authentication or user accounts, no billing, no client self-service and no client selector in the dashboard.
+SignalScope AI remains an **operator-assisted audit system, not a SaaS product**. It has no audit snapshots or history, no scheduled monitoring, no persistent database, no authentication or user accounts, no billing, no client self-service and no client selector in the dashboard.
 
 ## Audit Configuration
 
@@ -313,7 +314,7 @@ Select an audit on any command-line entry point with `--audit SLUG`. Omitting it
 
 ```bash
 python src/report_generator.py --audit <slug>
-python src/run_batch_audit.py --audit <slug> --limit 5
+python src/run_structured_batch_audit.py --audit <slug> --limit 5
 python src/measurement_engine.py <baseline.csv> <followup.csv> --audit <slug>
 ```
 
@@ -384,10 +385,85 @@ The new audit can be used immediately with the existing `--audit` workflow:
 
 ```bash
 python src/audit_runner.py --audit acme-uk-garden
-python src/run_batch_audit.py --audit acme-uk-garden --limit 5
+python src/run_structured_batch_audit.py --audit acme-uk-garden --limit 1
 ```
 
-v2.2 creates the workspace; it does not yet run a complete structured audit across all 40 questions. `run_batch_audit.py` records answers without the structured brand, competitor, source and sentiment fields, and the structured runners each process a single question. Structured batch evidence collection is planned for v2.3.
+Creating the workspace does not collect any evidence. Review the generated `buyer_questions.csv` (see [docs/QUESTION_GENERATION_GUIDE.md](docs/QUESTION_GENERATION_GUIDE.md)), then collect evidence as described in [Collecting Structured Evidence](#collecting-structured-evidence).
+
+---
+
+# Collecting Structured Evidence
+
+Since v2.3, one command collects complete structured evidence for an audit's buyer questions, run from the repository root:
+
+```bash
+python src/run_structured_batch_audit.py --audit acme-uk-garden
+```
+
+For each question that still needs evidence, in `buyer_questions.csv` order, it:
+
+1. asks Gemini the question;
+2. saves Gemini's **complete answer** as a raw evidence file;
+3. analyses that saved answer with the existing structural analysis (brand citation, position, competitors, sources, sentiment);
+4. saves one structurally complete row to `audit_results.csv` before moving to the next question.
+
+| Option | Meaning |
+|---|---|
+| `--audit SLUG` | The audit to work on (default: the Boots UK demonstration audit) |
+| `--limit N` | Attempt at most N questions that still need work (default: all) |
+| `--delay S` | Seconds to wait between questions (default: 5) |
+| `--questions PATH` | Use a different question file than the audit's own |
+| `--results PATH` | Use a different results file; raw evidence is then stored beside it |
+
+A cautious way to start a new audit (guidance, not a requirement):
+
+```bash
+python src/run_structured_batch_audit.py --audit acme-uk-garden --limit 1   # check one question end to end
+python src/run_structured_batch_audit.py --audit acme-uk-garden --limit 5   # a small batch
+python src/run_structured_batch_audit.py --audit acme-uk-garden             # all remaining questions
+```
+
+**Resuming is automatic.** Each run skips questions that are already complete and continues with the next one. A question whose answer was saved but not yet analysed (for example after an analysis error or an interruption) is completed from the saved answer, without asking Gemini again. Re-running a finished audit makes no Gemini calls and changes no files.
+
+**Cost.** A new question takes about two Gemini calls (the answer, then its analysis); a question completed from a saved answer takes about one. Temporary API errors are retried, which can add calls. The run prints how many questions need work before it starts, so `--limit` can be used to control how many calls a run makes.
+
+**Failures.** If a question fails (an API error after retries, or an analysis Gemini returns in an unusable form), it is reported, no row is saved for it, and the run continues with later questions; any answer already saved is kept for the next run. If saving itself fails, or a results or evidence file changes unexpectedly, the run stops immediately so nothing is corrupted; everything saved before that point is kept. The command exits with status 1 if any question failed or needs investigation, and 0 otherwise.
+
+When evidence collection is finished, run the existing reports (for example `python src/report_generator.py --audit acme-uk-garden` and `python src/geo_findings_analyzer.py --audit acme-uk-garden`). Reports state whether structured Gemini results exist for the complete question library.
+
+## Raw Evidence Files
+
+Every new Gemini answer is saved in full, before it is analysed, in:
+
+```text
+audits/<slug>/raw_responses/<question_id>__gemini.json
+```
+
+| Field | Content |
+|---|---|
+| `format_version` | `1` |
+| `audit_slug` | The audit the answer belongs to |
+| `question_id`, `question` | The question, exactly as sent to Gemini |
+| `engine` | `Gemini` |
+| `requested_model` | The model SignalScope asked for (for example `gemini-2.5-flash`). It does **not** prove which exact model version answered |
+| `run_date` | The date the answer was collected |
+| `raw_response_text` | The complete, unedited answer |
+
+`audit_results.csv` holds the structured evidence, with a normalised 500-character `answer_snippet` of each answer; the raw evidence file holds the complete answer for traceability. Reports read only `audit_results.csv`. A saved raw answer shows what Gemini said; it does not make that answer factually correct.
+
+Raw evidence files are never overwritten. A malformed or conflicting file is reported and left untouched for the operator to investigate; there is no automatic repair.
+
+**Raw AI responses are not committed to Git.** `.gitignore` ignores every `raw_responses/` folder under `audits/`, including the Boots demonstration audit's (whose other files remain tracked), and client audit folders are ignored entirely.
+
+## Existing Results
+
+- **Rows collected before v2.3 are never rewritten.** A Gemini row that is missing its structured fields (for example from the legacy `run_batch_audit.py`) is reported as legacy incomplete and left alone: its 500-character snippet is not analysed, and a new answer is not requested in its place. The Boots demonstration audit's PA01–PA03 rows are like this.
+- A complete Gemini row without a raw evidence file (such as the Boots PA04 and PA05 rows) remains a valid historical result and is not regenerated just to create one.
+- Perplexity rows are ignored by the structured batch.
+
+## Legacy Answers-Only Runner
+
+`src/run_batch_audit.py` is kept for backwards compatibility. It saves only a 500-character snippet of each answer, leaves the structured fields blank, and stores no raw evidence. **Use `run_structured_batch_audit.py` for all new evidence collection;** a row created by the legacy runner is treated as legacy incomplete and is not completed later.
 
 ---
 
@@ -477,7 +553,8 @@ SignalScope-AI/
 │   ├── response_analyzer.py         # Structured extraction from a raw AI response
 │   ├── write_single_audit_result.py # Shared, atomic audit-results CSV writer
 │   ├── run_single_audit.py          # Single-question Gemini integration
-│   ├── run_batch_audit.py           # Batch runner with retry logic
+│   ├── run_batch_audit.py           # Legacy answers-only batch runner (kept for compatibility)
+│   ├── run_structured_batch_audit.py # Structured batch evidence collection (primary)
 │   ├── run_structured_audit.py      # Single-question structured audit pipeline
 │   ├── report_generator.py          # Insights Engine: audit_report.md
 │   ├── geo_findings_analyzer.py     # Insights Engine: GEO_FINDINGS.md
@@ -493,7 +570,8 @@ SignalScope-AI/
 │   └── boots-uk-health-beauty/      # Default demonstration audit
 │       ├── audit_config.json        # Client and scope values for this audit
 │       ├── buyer_questions.csv      # Placeholder-substituted question set
-│       └── audit_results.csv        # Structured audit evidence (11-column schema)
+│       ├── audit_results.csv        # Structured audit evidence (11-column schema)
+│       └── raw_responses/           # Full Gemini answers from v2.3 runs (git-ignored)
 │
 ├── reports/
 │   └── boots-uk-health-beauty/
@@ -1142,7 +1220,7 @@ Rather than relying solely on manual testing, SignalScope AI includes an extensi
 
 ## Test Coverage
 
-The project contains **484 automated tests**, including:
+The project contains **568 automated tests**, including:
 
 - unit tests
 - integration tests
@@ -1160,7 +1238,9 @@ v2.1 added three regression safeguards:
 - **Multi-client tests** run the complete workflow for a fictional company, entirely in temporary directories with Gemini mocked, and require that no Boots value leaks into its output.
 - **A static guard** fails if client-specific business values are written as literals in reusable production code.
 
-v2.2 added audit-creation tests: generating the Boots workspace from its configuration and the master template reproduces the committed Boots `audit_config.json` and `buyer_questions.csv` byte for byte, and fictional-client tests cover validation, collision refusal, rollback after injected failures, dry runs, the CLI and immediate `--audit` use. No test calls the Gemini API.
+v2.2 added audit-creation tests: generating the Boots workspace from its configuration and the master template reproduces the committed Boots `audit_config.json` and `buyer_questions.csv` byte for byte, and fictional-client tests cover validation, collision refusal, rollback after injected failures, dry runs, the CLI and immediate `--audit` use.
+
+v2.3 added structured batch tests: a full 40-question run for a fictional client with Gemini faked, complete raw evidence, resuming (including from a saved answer without a second answer call), `--limit` and `--delay`, failure and stop behaviour, interruption, protection of the historical Boots rows (run against a copy), and the create → collect → report chain, including the complete-versus-partial report wording. No test calls the Gemini API.
 
 ---
 
@@ -1372,13 +1452,15 @@ Current limitations include:
 - no web interface
 - no authentication
 - no scheduled monitoring
-- no complete structured batch audit across all 40 questions yet (planned for v2.3)
 - new audits require exactly three competitors and use the single master question template
 
-Two operational points apply in v2.2:
+Operational rules:
 
-- **Run commands from the repository root.** `create_audit.py` always writes to the project's own `audits/` folder, but the existing `--audit` runners resolve audit and report paths relative to the current working directory.
-- **Leftover staging folders.** A failed or interrupted (Ctrl-C) audit creation cleans up after itself. Only a hard process kill can leave an `audits/.creating-<slug>-*` folder behind; it is not a valid audit and can be deleted manually.
+- **Run commands from the repository root.** `create_audit.py` always writes to the project's own `audits/` folder, but the `--audit` runners resolve audit and report paths relative to the current working directory.
+- **Run one structured batch per audit at a time.** The runner detects another process writing to the same audit and stops rather than risk duplicate or corrupted results.
+- **Raw evidence needs hard-link support.** Evidence files are published with a filesystem hard link so an existing file can never be replaced. On a filesystem without hard links the run stops rather than fall back to overwriting.
+- **Leftover temporary files.** Failed or interrupted (Ctrl-C) runs clean up after themselves. Only a hard process kill can leave an `audits/.creating-<slug>-*` staging folder (from `create_audit.py`) or a dot-prefixed `.tmp` file in a `raw_responses/` folder (from the structured batch). Neither is used as evidence, and both can be deleted manually.
+- **Historical rows are not backfilled.** Legacy incomplete Gemini rows are not reprocessed, and older complete rows are not regenerated to create raw evidence (see [Existing Results](#existing-results)).
 
 These limitations were accepted in favour of demonstrating software architecture and engineering quality.
 
@@ -1391,8 +1473,8 @@ These limitations were accepted in favour of demonstrating software architecture
 | Version | Focus | Status |
 |---|---|---|
 | v2.1 | Multi-company configuration foundation | Released |
-| v2.2 | Repeatable client audit creation | This release |
-| v2.3 | Structured batch evidence collection | Planned |
+| v2.2 | Repeatable client audit creation | Released |
+| v2.3 | Structured batch evidence collection | Current release |
 | v2.4 | Audit snapshots and longitudinal history | Planned |
 | v2.5 | Recurring monitoring workflow | Planned |
 
@@ -1507,7 +1589,7 @@ See the accompanying `LICENSE` file for full details.
 
 <div align="center">
 
-**SignalScope AI v2.2.0**
+**SignalScope AI v2.3.0**
 
 *Evidence-Driven Generative Engine Optimisation Intelligence Platform*
 

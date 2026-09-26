@@ -36,6 +36,7 @@ from report_generator import (  # BRAND/CATEGORY/MARKET kept as backwards-compat
     compute_mention_frequency,
     compute_sentiment_summary,
     compute_stage_coverage,
+    gemini_coverage_complete,
     load_audit_rows,
 )
 from write_single_audit_result import WriteAuditResultError
@@ -278,10 +279,14 @@ def render_markdown(
     generated_at: date,
     *,
     audit_config: AuditConfig | None = None,
+    coverage_complete: bool = False,
 ) -> str:
     """Render the Markdown GEO findings report purely from an already-
     computed list[Finding] - the structured findings are the source of
-    truth, not this text. audit_config defaults to the default audit."""
+    truth, not this text. audit_config defaults to the default audit.
+    coverage_complete (see report_generator.gemini_coverage_complete)
+    selects the scope-note wording for a complete dataset; by default the
+    dataset is described as partial, as before."""
     audit_config = audit_config or _DEFAULT_AUDIT_CONFIG
     lines: list[str] = []
     lines.append(f"# SignalScope AI GEO Findings Report — {audit_config.report_subject}")
@@ -316,10 +321,16 @@ def render_markdown(
     lines.append("## Scope Note")
     lines.append("")
     lines.append("- This report is analysis only; it contains no recommendations.")
-    lines.append(
-        f"- Findings are based on {total_rows} recorded row(s) covering {unique_questions} "
-        f"of {total_question_count} buyer questions — a partial dataset."
-    )
+    if coverage_complete:
+        lines.append(
+            f"- Findings are based on {total_rows} recorded row(s) covering {unique_questions} "
+            f"of {total_question_count} buyer questions, with a structured Gemini result for every question."
+        )
+    else:
+        lines.append(
+            f"- Findings are based on {total_rows} recorded row(s) covering {unique_questions} "
+            f"of {total_question_count} buyer questions — a partial dataset."
+        )
     lines.append(
         "- Confidence reflects how much of the relevant data currently supports each "
         "finding, not the strength of any underlying business conclusion."
@@ -364,7 +375,13 @@ def generate_geo_findings(
     findings = compute_findings(rows, len(all_questions), audit_config=audit_config)
     unique_questions = len({r["question_id"] for r in rows if r.get("question_id")})
     markdown = render_markdown(
-        findings, len(rows), unique_questions, len(all_questions), generated_at, audit_config=audit_config
+        findings,
+        len(rows),
+        unique_questions,
+        len(all_questions),
+        generated_at,
+        audit_config=audit_config,
+        coverage_complete=gemini_coverage_complete(rows, all_questions),
     )
 
     out_path = Path(report_path)

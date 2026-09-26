@@ -24,6 +24,17 @@ time, and the raw response. This raw evidence is the foundation everything else 
 built on — see [DATA_DICTIONARY.md](DATA_DICTIONARY.md) for the fields this will
 require.
 
+As implemented in v2.3 (`src/run_structured_batch_audit.py`), each buyer question is
+sent to Gemini on its own; Gemini's complete answer is saved as a raw evidence file
+(the exact question, the model requested, the collection date and the full answer)
+before anything else happens; the saved answer is then analysed in a separate step
+into structured observations (brand citation and position, competitors, sources and
+sentiment); and the result is saved as one structured row. Because the answer is saved
+first, the analysis can be traced back to, and if necessary repeated from, the exact
+text it was based on. The implementation records the collection date rather than the
+time, and the model requested rather than a confirmed served model version — see
+[DATA_DICTIONARY.md](DATA_DICTIONARY.md#3-evidence-collection).
+
 ## Two-Pass AI Scoring
 
 AI involvement in the workflow is split into two distinct, separated passes:

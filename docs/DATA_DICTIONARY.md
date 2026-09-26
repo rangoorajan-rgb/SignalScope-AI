@@ -1,9 +1,9 @@
 # Data Dictionary
 
 This document defines the fields planned for the SignalScope AI workflow. It is a
-design specification: no data structures, storage or code implementing these fields
-exist yet (see [CURRENT_SPRINT.md](../CURRENT_SPRINT.md)). Field names below are
-descriptive and may be refined once implementation begins.
+design specification: field names below are descriptive, and the implemented storage
+differs from it where noted (see the implementation note under
+[Evidence Collection](#3-evidence-collection)).
 
 The fields are grouped by the workflow stage in which they are first created (see
 [README.md](../README.md) for the stage diagram).
@@ -48,6 +48,25 @@ response. See [METHODOLOGY.md](METHODOLOGY.md#independent-query-methodology).
 | `raw_response_text` | string | The complete, unedited response returned by the platform. |
 | `run_sequence_number` | integer | Index of this run where a query is repeated multiple times, to support observation of [model variability](METHODOLOGY.md#model-variability). |
 | `collection_method` | string | How the query was submitted (e.g. manual entry via platform UI, API). |
+
+**Implementation note (v2.3).** Evidence collected by
+`src/run_structured_batch_audit.py` is stored in two places:
+
+- **Raw evidence file** — `audits/<slug>/raw_responses/<question_id>__gemini.json`,
+  one per question, holding `format_version`, `audit_slug`, `question_id`, `question`
+  (the exact query text sent), `engine` (the platform, `Gemini`), `requested_model`,
+  `run_date` and `raw_response_text` (the complete, unedited response). Compared with
+  the design above: `requested_model` is the model SignalScope requested, not a
+  disclosed served model version; `run_date` is a date, not a timestamp; there is no
+  separate `query_id` or `run_sequence_number`, because each question is asked once
+  per audit and identified by `(question_id, engine)`.
+- **`audits/<slug>/audit_results.csv`** — one structured row per question and engine,
+  in the existing 11-column format, including `answer_snippet`: the response collapsed
+  to a single line and truncated to 500 characters. It does not contain the complete
+  response.
+
+Rows collected before v2.3 (and Perplexity rows, which were recorded manually) have no
+raw evidence file; for them, only `answer_snippet` survives.
 
 ## 4. Data Validation
 

@@ -1,10 +1,80 @@
 # Current Sprint
 
-## v2.2 — Repeatable Client Audit Creation
+## v2.3 — Structured Batch Evidence Collection
 
-**Status:** Complete (implementation verified; awaiting owner review and commit)
+**Status:** Complete — ready for commit and release (not yet released)
 
-### Baseline: v2.1.0
+### Baseline: v2.2.0 (released)
+
+v2.2.0 made client audit creation repeatable (`src/create_audit.py`), with 484 tests.
+But a new audit could not yet be filled with structured evidence: the batch runner
+recorded answers only, with blank structured fields, and the structured runners each
+processed a single fixed question. Only a 500-character snippet of each answer was
+kept.
+
+### Objective
+
+Complete structured batch evidence collection for a configured audit, preserving every
+new Gemini answer in full, without changing the results file format or any existing
+calculation or report output for the Boots demonstration audit.
+
+### Delivered
+
+- **Checkpoint A — raw evidence, question states and single-question processing.**
+  Full raw evidence files (`audits/<slug>/raw_responses/<question_id>__gemini.json`)
+  with strict validation and a no-overwrite atomic publish; filename-safe question-ID
+  checks; a structural completeness check against the existing results schema; the
+  question states (not started, answer stored, complete, legacy incomplete, legacy
+  complete without evidence, evidence problem); retried analysis for temporary API
+  errors; and single-question processing that saves the answer before analysing the
+  saved file, so an answered question resumes without a second answer call. A
+  `.gitignore` rule keeps raw responses out of Git.
+- **Checkpoint B — the structured batch.** `src/run_structured_batch_audit.py`: pre-flight
+  checks before any API call, a sequential run over all 40 questions in question-file
+  order, one row saved immediately per question, `--limit` and `--delay`, question
+  failures reported while later questions continue, storage or integrity failures
+  stopping the run, safe resume after failure or interruption, a summary and exit
+  codes, and the CLI.
+- **Checkpoint C — report accuracy, documentation and release.** The audit and
+  findings reports describe the dataset as partial only when not every question has a
+  structurally complete Gemini result, and mention Perplexity only when Perplexity rows
+  exist; the Boots reports stay byte-identical. Documentation covers the structured
+  batch, raw evidence, the historical-row policy, the legacy runner and operator rules.
+  The dashboard shows version 2.3.0.
+- **Test protection.** 568 tests pass: the 484 from v2.2, 84 structured batch and
+  report-coverage tests. The v2.1 golden reports are unchanged. No test calls Gemini.
+
+### Known limitations
+
+- Commands must be run from the repository root.
+- Only one structured batch should run against an audit at a time; a second writer is
+  detected and the run stops.
+- Raw evidence publishing needs a filesystem with hard-link support.
+- A hard process kill can leave a dot-prefixed `.tmp` file in `raw_responses/`; it is
+  never used as evidence and can be deleted manually.
+- Historical rows are not backfilled, and `requested_model` records the model
+  requested, not a confirmed served model version.
+
+### Deferred
+
+- v2.4: audit snapshots and longitudinal history.
+- v2.5: recurring monitoring workflow.
+- Later platform work: database, scheduling, multi-project interface, authentication,
+  cloud deployment; billing and client self-service only when justified.
+- Not planned for a specific version yet: recording the served model version, storing
+  the analyser's responses, backfilling historical evidence, variable competitor
+  counts, alternative question templates, a dashboard audit selector, removing the
+  legacy answers-only runner.
+
+---
+
+## Previous release records
+
+### v2.2 — Repeatable Client Audit Creation
+
+**Status:** Released as v2.2.0. Recorded as written at release.
+
+#### Baseline: v2.1.0
 
 v2.1.0 made the Audit, Insights, Recommendation and Measurement Engines, the runners and
 the dashboard configuration-driven: each audit is described by
@@ -13,12 +83,12 @@ default (395 tests). But creating a new audit was still manual: making the folde
 writing the JSON by hand, copying the master question file and replacing its
 placeholders, and creating a results file with the exact header.
 
-### Objective
+#### Objective
 
 Turn the v2.1 configuration foundation into a repeatable, safe client audit creation
 workflow, without changing any existing audit, report or engine behaviour.
 
-### Delivered
+#### Delivered
 
 - **Checkpoint A — validation and in-memory generation.** A public
   `validate_audit_config_data()` in `src/audit_config.py` reuses the v2.1 config rules.
@@ -43,7 +113,7 @@ workflow, without changing any existing audit, report or engine behaviour.
   One v2.1 dashboard assertion was relaxed from pinning version 2.1.0 to checking that a
   version is shown; the exact version is checked in the new tests. No test calls Gemini.
 
-### Known limitations
+#### Known limitations
 
 - Commands must be run from the repository root: `create_audit.py` always writes to the
   project's `audits/` folder, but the existing `--audit` runners resolve paths relative
@@ -51,7 +121,7 @@ workflow, without changing any existing audit, report or engine behaviour.
 - A hard process kill during creation can leave an `audits/.creating-<slug>-*` staging
   folder. It is not a valid audit and can be deleted manually.
 
-### Deferred
+#### Deferred
 
 - v2.3: structured batch evidence collection across all 40 questions (the batch runner
   currently records answers without structured fields, and the structured runners each
@@ -64,8 +134,6 @@ workflow, without changing any existing audit, report or engine behaviour.
   question templates, a dashboard audit selector.
 
 ---
-
-## Previous release records
 
 ### v2.1 — Multi-Company Foundation
 
