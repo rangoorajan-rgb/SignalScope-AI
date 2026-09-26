@@ -41,6 +41,10 @@ data/output/*
 audits/*
 !audits/boots-uk-health-beauty/
 !audits/boots-uk-health-beauty/**
+# Full raw AI answers (src/run_structured_batch_audit.py) are never
+# committed, including for the Boots demonstration audit. Must follow the
+# Boots exceptions above.
+audits/*/raw_responses/
 reports/*
 !reports/boots-uk-health-beauty/
 !reports/boots-uk-health-beauty/**

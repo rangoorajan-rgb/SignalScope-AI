@@ -6,6 +6,71 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 project will adhere to [Semantic Versioning](https://semver.org/) once a first
 functional release exists.
 
+## [2.3.0] — 2026-09-26
+
+Structured batch evidence collection. An operator can now collect complete structured
+Gemini evidence for every question of an audit with one resumable command. The results
+file format and all existing engine and report calculations are unchanged, and the
+Boots UK Health & Beauty demonstration audit and its reports are unchanged.
+
+### Added
+
+- `src/run_structured_batch_audit.py`, the structured multi-question evidence
+  collection runner and CLI (`--audit`, `--limit`, `--delay`, `--questions`,
+  `--results`). Questions are processed one at a time in question-file order; each
+  answer is analysed with the existing response analyser and saved as one structurally
+  complete row before the next question starts.
+- Full raw-response evidence files:
+  `audits/<slug>/raw_responses/<question_id>__gemini.json` holds the complete,
+  unedited answer with `format_version`, `audit_slug`, `question_id`, `question`,
+  `engine`, `requested_model` (the model requested, not a confirmed served version),
+  `run_date` and `raw_response_text`. The answer is saved before it is analysed, and
+  analysis always reads the saved file.
+- Resumable processing: questions not yet started are answered and analysed; questions
+  whose answer was saved but not analysed are completed from the saved answer without
+  a second answer call; completed questions are skipped. Re-running a finished audit
+  makes no API calls and changes no files.
+- `--limit N` (attempt the next N questions still needing work) and `--delay S`
+  (seconds between questions).
+- No-overwrite evidence integrity: evidence files are published atomically with a
+  filesystem hard link and are never replaced; malformed or conflicting evidence is
+  reported and left untouched; filesystems without hard links stop the run rather
+  than fall back to overwriting.
+- Per-question atomic persistence of `audit_results.csv` using the existing writer and
+  duplicate check. Question-level failures are reported and later questions continue;
+  storage or integrity failures, and unexpected changes to the results file, stop the
+  run with earlier results kept.
+- `.gitignore` rule `audits/*/raw_responses/`, so raw AI responses are never committed,
+  including for the Boots demonstration audit.
+- Tests: `tests/test_run_structured_batch_audit.py` (raw evidence, question states,
+  single-question processing, a full 40-question run, resume, `--limit`/`--delay`,
+  failure and stop behaviour, interruption, historical Boots protection, the
+  create → collect → report chain and the report coverage wording). No test calls
+  Gemini.
+
+### Changed
+
+- The audit report's and GEO findings report's "partial dataset" wording (and the
+  "Not all … questions" and "Complete the remaining …" statements) now appear only
+  when not every question has a structurally complete Gemini result; a complete audit
+  is described as complete. Statements and the engine-coverage line about Perplexity
+  rows appear only when Perplexity rows exist. Output for the Boots demonstration audit
+  is byte-identical to before.
+- `run_structured_batch_audit.py` is the recommended evidence collection workflow.
+- Documentation (README, data dictionary, methodology, module READMEs) describes the
+  structured batch, raw evidence storage, the historical-row policy and operator
+  rules. The Streamlit dashboard shows version 2.3.0.
+
+### Preserved / not included
+
+- `src/run_batch_audit.py` is kept unchanged for backwards compatibility; it collects
+  answers only and should not be used for new evidence collection.
+- The 11-column `audit_results.csv` format is unchanged.
+- Historical rows are not backfilled: legacy rows without structured fields are not
+  reprocessed, and older complete rows are not regenerated to create raw evidence.
+- No database, scheduling, SaaS interface, multi-provider orchestration, audit
+  snapshots or history.
+
 ## [2.2.0] — 2026-09-24
 
 Repeatable client audit creation. An operator can now create a complete, immediately

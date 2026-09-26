@@ -45,6 +45,38 @@ section of the [README](../README.md).
 Corresponding tests are in
 [tests/test_create_audit.py](../tests/test_create_audit.py).
 
+## run_structured_batch_audit.py
+
+Structured batch evidence collection (v2.3) — the recommended way to collect evidence
+for an audit. For each question still needing work, in `buyer_questions.csv` order, it
+asks Gemini (reusing `run_batch_audit.generate_with_retry`), saves the complete answer
+as a raw evidence file in `audits/<slug>/raw_responses/<question_id>__gemini.json`
+(published atomically, never overwritten), analyses that saved answer with the existing
+`response_analyzer.analyze_response` (temporary API errors retried), builds the row
+with `run_structured_audit.build_structured_row`, and saves it to `audit_results.csv`
+with the existing writer and duplicate check before moving on. A question whose answer
+was saved but not analysed is completed from the saved answer without asking Gemini
+again; completed, legacy and problem rows are never reprocessed or rewritten. Question
+failures are reported and later questions continue; storage or integrity failures stop
+the run. It never generates reports.
+
+Run it from the repository root:
+
+```
+python src/run_structured_batch_audit.py [--audit SLUG] [--limit N] [--delay S] \
+  [--questions PATH] [--results PATH]
+```
+
+Exit status is 1 if any question failed or has an evidence problem, 0 otherwise. See
+the "Collecting Structured Evidence" section of the [README](../README.md).
+
+`run_batch_audit.py` is the legacy answers-only batch runner, kept unchanged for
+backwards compatibility: it stores only a 500-character snippet with blank structured
+fields and should not be used for new evidence collection.
+
+Corresponding tests are in
+[tests/test_run_structured_batch_audit.py](../tests/test_run_structured_batch_audit.py).
+
 ## audit_runner.py
 
 The first working layer of the audit runner (see

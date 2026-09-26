@@ -158,7 +158,31 @@ def _escape_table_cell(value: str) -> str:
     return (value or "").replace("|", "\\|").replace("\n", " ")
 
 
-def _build_executive_summary(overview: dict, engine_counts: Counter, total_question_count: int) -> str:
+def gemini_coverage_complete(rows: list[dict[str, str]], questions: list[dict[str, str]]) -> bool:
+    """True only when every question in the library has a structurally
+    complete Gemini result row. Uses the structured batch runner's
+    is_structurally_complete, so there is one definition of completeness;
+    raw-answer-only Gemini rows and rows from other engines (e.g.
+    Perplexity) do not count."""
+    # Imported here so reporting does not load the batch runner (and the
+    # Gemini SDK) unless coverage is actually being assessed.
+    from run_structured_batch_audit import TARGET_ENGINE, is_structurally_complete
+
+    if not questions:
+        return False
+    gemini_rows: dict[str, list[dict[str, str]]] = {}
+    for row in rows:
+        if row.get("engine") == TARGET_ENGINE:
+            gemini_rows.setdefault(row.get("question_id", ""), []).append(row)
+    return all(
+        any(is_structurally_complete(row, question) for row in gemini_rows.get(question["question_id"], []))
+        for question in questions
+    )
+
+
+def _build_executive_summary(
+    overview: dict, engine_counts: Counter, total_question_count: int, coverage_complete: bool = False
+) -> str:
     perplexity_n = engine_counts.get("Perplexity", 0)
     gemini_n = engine_counts.get("Gemini", 0)
     other_engines = {e: c for e, c in engine_counts.items() if e not in ("Perplexity", "Gemini")}
@@ -166,14 +190,34 @@ def _build_executive_summary(overview: dict, engine_counts: Counter, total_quest
     if other_engines:
         other_note = " and " + ", ".join(f"{c} via {e}" for e, c in sorted(other_engines.items()))
 
-    return (
+    opening = (
         f"This audit currently holds {overview['total_rows']} recorded result(s), covering "
         f"{overview['unique_questions']} of the {total_question_count} questions in the buyer "
-        f"question library, across {_format_list_or_none(overview['engines'])}. {perplexity_n} "
-        f"row(s) were manually recorded via Perplexity and {gemini_n} row(s) were generated "
-        f"programmatically via Gemini{other_note}. This dataset is partial: it does not yet cover "
-        f"the full question library, and no comparative visibility score has been calculated."
+        f"question library, across {_format_list_or_none(overview['engines'])}."
     )
+    if perplexity_n:
+        sources = (
+            f" {perplexity_n} row(s) were manually recorded via Perplexity and {gemini_n} row(s) were "
+            f"generated programmatically via Gemini{other_note}."
+        )
+    elif gemini_n:
+        sources = f" {gemini_n} row(s) were generated programmatically via Gemini{other_note}."
+    elif other_engines:
+        sources = " " + "; ".join(f"{c} row(s) were recorded via {e}" for e, c in sorted(other_engines.items())) + "."
+    else:
+        sources = ""
+
+    if coverage_complete:
+        closing = (
+            f" Structured Gemini results are recorded for all {total_question_count} questions in the "
+            f"buyer question library. No comparative visibility score has been calculated."
+        )
+    else:
+        closing = (
+            " This dataset is partial: it does not yet cover the full question library, and no "
+            "comparative visibility score has been calculated."
+        )
+    return opening + sources + closing
 
 
 def generate_report_markdown(
@@ -182,16 +226,23 @@ def generate_report_markdown(
     total_question_count: int,
     *,
     audit_config: AuditConfig | None = None,
+    questions: list[dict[str, str]] | None = None,
 ) -> str:
     """Build the report's Markdown text from already-loaded rows.
 
-    Deterministic: the same rows, generated_at, total_question_count and
-    audit_config always produce byte-identical output (all groupings are
-    explicitly sorted; nothing depends on wall-clock time other than
-    generated_at, which is passed in rather than read internally).
-    audit_config defaults to the default audit.
+    Deterministic: the same rows, generated_at, total_question_count,
+    audit_config and questions always produce byte-identical output (all
+    groupings are explicitly sorted; nothing depends on wall-clock time
+    other than generated_at, which is passed in rather than read
+    internally). audit_config defaults to the default audit.
+
+    questions (the audit's question library rows) lets the report state
+    that the dataset is complete when every question has a structurally
+    complete Gemini result (see gemini_coverage_complete); without it the
+    dataset is described as partial, as before.
     """
     audit_config = audit_config or _DEFAULT_AUDIT_CONFIG
+    coverage_complete = questions is not None and gemini_coverage_complete(rows, questions)
     overview = compute_overview(rows, generated_at, audit_config=audit_config)
     engine_counts = compute_engine_coverage(rows)
     stage_counts = compute_stage_coverage(rows)
@@ -218,12 +269,13 @@ def generate_report_markdown(
 
     lines.append("## Executive Summary")
     lines.append("")
-    lines.append(_build_executive_summary(overview, engine_counts, total_question_count))
+    lines.append(_build_executive_summary(overview, engine_counts, total_question_count, coverage_complete))
     lines.append("")
 
     lines.append("## Coverage by Engine")
     lines.append("")
-    lines.append(f"- Perplexity row count: {engine_counts.get('Perplexity', 0)}")
+    if engine_counts.get("Perplexity", 0):
+        lines.append(f"- Perplexity row count: {engine_counts['Perplexity']}")
     lines.append(f"- Gemini row count: {engine_counts.get('Gemini', 0)}")
     for engine in sorted(e for e in engine_counts if e not in ("Perplexity", "Gemini")):
         lines.append(f"- {engine} row count: {engine_counts[engine]}")
@@ -293,20 +345,38 @@ def generate_report_markdown(
 
     lines.append("## Limitations")
     lines.append("")
-    lines.append("- This is a partial audit dataset.")
-    lines.append(f"- Not all {total_question_count} buyer questions have Gemini results yet.")
+    if coverage_complete:
+        lines.append(f"- Structured Gemini results are recorded for all {total_question_count} buyer questions.")
+    else:
+        lines.append("- This is a partial audit dataset.")
+        lines.append(f"- Not all {total_question_count} buyer questions have Gemini results yet.")
     lines.append("- Blank structured fields were not treated as negative findings.")
-    lines.append("- Perplexity rows were manually recorded.")
-    lines.append("- Gemini rows were generated programmatically.")
-    lines.append("- Conclusions are limited to the currently available records.")
+    if engine_counts.get("Perplexity", 0):
+        lines.append("- Perplexity rows were manually recorded.")
+    if engine_counts.get("Gemini", 0):
+        lines.append("- Gemini rows were generated programmatically.")
+    if coverage_complete:
+        lines.append(
+            "- Each result reflects the AI response recorded on its run date; the same questions "
+            "may be answered differently if asked again."
+        )
+        lines.append("- Conclusions are limited to the recorded results.")
+    else:
+        lines.append("- Conclusions are limited to the currently available records.")
     lines.append("")
 
     lines.append("## Next Step")
     lines.append("")
-    lines.append(
-        "Complete the remaining structured Gemini audit questions before producing a "
-        "final comparative visibility score."
-    )
+    if coverage_complete:
+        lines.append(
+            "Review these results alongside the GEO findings and recommendations reports. No "
+            "comparative visibility score has been calculated."
+        )
+    else:
+        lines.append(
+            "Complete the remaining structured Gemini audit questions before producing a "
+            "final comparative visibility score."
+        )
     lines.append("")
 
     return "\n".join(lines)
@@ -344,7 +414,9 @@ def generate_report(
     all_questions = load_questions(questions_csv_path)
     rows = load_audit_rows(results_csv_path)
 
-    markdown = generate_report_markdown(rows, generated_at, len(all_questions), audit_config=audit_config)
+    markdown = generate_report_markdown(
+        rows, generated_at, len(all_questions), audit_config=audit_config, questions=all_questions
+    )
 
     out_path = Path(report_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
