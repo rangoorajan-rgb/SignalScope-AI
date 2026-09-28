@@ -4,11 +4,39 @@ Automated tests covering the SignalScope AI workflow's source code in
 [src/](../src/). All tests use Python's built-in `unittest` module, never call the
 real Gemini API, and never write to the committed audit data or reports.
 
-Run the complete suite (568 tests) from the repository root with:
+Run the complete suite (677 tests) from the repository root with:
 
 ```
 python -m unittest discover -s tests -v
 ```
+
+## v2.4 audit history tests
+
+- `test_audit_history.py` (109 tests) — `src/audit_history.py`:
+  - snapshots: run IDs, SHA-256 hashing, complete and partial snapshots,
+    `--allow-partial`, evidence problems blocking, immutability, duplicate refusal,
+    rollback after failures injected at every step, and a Boots copy;
+  - integrity: modified, deleted, added and undeclared files, manifest tampering, a
+    renamed folder, and `requested_models` verified against the preserved evidence
+    (a false, empty or extra model invalidates the snapshot; a snapshot without
+    evidence and `[]` stays valid);
+  - `list` and the derived current-run states;
+  - `new-run`: refusals (never snapshotted, changed, tampered, no fallback, already
+    fresh), recovery from every interruption point, retirement-folder integrity, a
+    partial snapshot, and a three-run lifecycle;
+  - `compare`: a full 40-versus-40 comparison with exact metric values, unequal and
+    partial coverage using only shared questions, zero overlap, Perplexity and
+    incomplete rows excluded, every config and question-library refusal, direction and
+    run-ID checks, a tampered snapshot, model and version warnings, the output
+    location and overwrite behaviour, and the optional report block (default output
+    unchanged).
+
+  Every audit is fictional and created in a temporary directory, evidence is collected
+  with the real structured batch with answers and analysis faked, and the Gemini SDK
+  is blocked; comparisons make no Gemini calls. The real `audits/`, `reports/` and
+  master template are verified unchanged after every test, and no `snapshots/` folder
+  may appear under the real `audits/`. The Boots golden reports, including
+  `GEO_PROGRESS.md`, are protected by `test_boots_golden_outputs.py`.
 
 ## v2.3 structured batch tests
 

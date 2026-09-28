@@ -6,6 +6,75 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 project will adhere to [Semantic Versioning](https://semver.org/) once a first
 functional release exists.
 
+## [2.4.0] — 2026-09-28
+
+Audit snapshots and longitudinal history. An operator can preserve a finished run as an
+immutable, verifiable snapshot, reset the audit for a fresh run, and compare two
+snapshots of the same audit with the existing Measurement Engine. The results file
+format, the structured batch and all existing engine calculations are unchanged, and
+the Boots UK Health & Beauty demonstration audit and its reports are unchanged. Ready
+for release.
+
+### Added
+
+- `src/audit_history.py`, the audit history CLI (`snapshot`, `list`, `new-run`,
+  `compare`). None of its commands calls Gemini.
+- Immutable snapshots in `audits/<slug>/snapshots/<run-id>/` (run ID
+  `YYYYMMDDTHHMMSSZ`, UTC): byte-for-byte copies of the run's `audit_config.json`,
+  `buyer_questions.csv`, `audit_results.csv` and `raw_responses/`, plus
+  `reports/audit_report.md` and `reports/GEO_FINDINGS.md` rendered from those copies.
+  Snapshots are built in a staging folder, validated and published with one rename;
+  a published snapshot is never overwritten.
+- `snapshot_manifest.json` with provenance, coverage and a SHA-256 hash of every other
+  snapshot file. Every read verifies the hashes, rejects undeclared files and
+  recomputes the coverage counts (tamper detection, not prevention).
+- Complete and partial snapshots: a partial run is preserved only with
+  `--allow-partial`; evidence integrity problems always block a snapshot.
+- `list`: every snapshot with its integrity result, and the current run's derived
+  state (fresh, in progress / partial, complete, snapshotted, reset interrupted).
+- `new-run`: resets `audit_results.csv` to its header and removes the current
+  `raw_responses/`, keeping the config and questions, only when the latest valid
+  snapshot preserves the current run exactly.
+- Interrupted-reset recovery: evidence is retired into a hidden folder and verified
+  against the snapshot before deletion; running `new-run` again finishes an
+  interrupted reset.
+- `compare --from-run --to-run`: directional comparison of two valid snapshots that
+  share the same core configuration (slug, brand, market, category, ordered
+  competitors) and question methodology (ordered question ID, buyer journey stage
+  and text), written to
+  `reports/<slug>/comparisons/<from-run>__<to-run>/GEO_PROGRESS.md`.
+- Shared-question comparison: metrics use only Gemini questions structurally complete
+  in both runs, with each run's own coverage reported separately.
+- Neutral warnings when the two runs record different requested model sets or
+  SignalScope versions (the comparison still runs).
+- Verified requested-model provenance: snapshot validation recomputes
+  `requested_models` from the preserved evidence and rejects a manifest that
+  disagrees. `signalscope_version` remains recorded metadata.
+- `src/version.py` (`SIGNALSCOPE_VERSION`), recorded in snapshot manifests.
+- Tests: `tests/test_audit_history.py` (109 tests). No test calls Gemini.
+
+### Changed
+
+- Dashboard version shows 2.4.0.
+- `.gitignore`: `raw_responses/` folders are ignored at any depth under `audits/`, and
+  `audits/*/snapshots/` and `reports/*/comparisons/` are ignored, including for the
+  Boots demonstration audit.
+- `measurement_engine.render_markdown` accepts an optional run-comparison context
+  (run IDs, coverage, shared question count, warnings). Without it, output is
+  byte-identical to before.
+- Documentation (README, data dictionary, methodology, module READMEs) describes the
+  history workflow.
+
+### Preserved / Not Included
+
+- The 11-column `audit_results.csv` schema is unchanged.
+- `src/run_structured_batch_audit.py` and the existing metrics are unchanged.
+- Boots demonstration data and reports are unchanged.
+- Not included: scheduling, a database, authentication, billing, a SaaS portal,
+  multi-provider orchestration, snapshot deletion, repair or pruning, trend analysis
+  across more than two runs, and a history view in the dashboard (which remains
+  current-run only).
+
 ## [2.3.0] — 2026-09-26
 
 Structured batch evidence collection. An operator can now collect complete structured

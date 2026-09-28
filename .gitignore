@@ -42,12 +42,18 @@ audits/*
 !audits/boots-uk-health-beauty/
 !audits/boots-uk-health-beauty/**
 # Full raw AI answers (src/run_structured_batch_audit.py) are never
-# committed, including for the Boots demonstration audit. Must follow the
-# Boots exceptions above.
+# committed at any depth, and audit snapshots (src/audit_history.py) are
+# never committed - including for the Boots demonstration audit. Must
+# follow the Boots exceptions above. (The v2.3 rule audits/*/raw_responses/
+# is kept; it is a subset of the v2.4 audits/**/raw_responses/ rule.)
 audits/*/raw_responses/
+audits/**/raw_responses/
+audits/*/snapshots/
 reports/*
 !reports/boots-uk-health-beauty/
 !reports/boots-uk-health-beauty/**
+# Run comparison outputs are derived and never committed.
+reports/*/comparisons/
 
 # --- Testing and coverage ---
 .pytest_cache/

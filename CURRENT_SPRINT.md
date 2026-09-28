@@ -1,10 +1,100 @@
 # Current Sprint
 
-## v2.3 — Structured Batch Evidence Collection
+## v2.4 — Audit Snapshots and Longitudinal History
 
 **Status:** Complete — ready for commit and release (not yet released)
 
-### Baseline: v2.2.0 (released)
+### Baseline: v2.3.0 (released)
+
+v2.3.0 made structured evidence collection repeatable (`src/run_structured_batch_audit.py`),
+with full raw evidence for every new Gemini answer and 568 tests. But an audit had only
+one current run: collecting again meant overwriting it, and there was no safe way to
+preserve a run or measure change between two runs.
+
+### Objective
+
+Preserve completed runs as immutable, verifiable history, allow a fresh run to be
+collected safely, and compare two preserved runs with the existing Measurement Engine,
+without changing the results file format, the structured batch, any existing metric or
+the Boots demonstration audit and reports.
+
+### Delivered
+
+- **Checkpoint A — snapshots and listing (612 tests).** `src/audit_history.py`
+  `snapshot` and `list`: byte-for-byte copies of the run's config, questions, results
+  and raw evidence in `audits/<slug>/snapshots/<run-id>/`, frozen audit and findings
+  reports rendered from those copies, and a manifest with a SHA-256 hash of every
+  file. Snapshots are staged, validated and published with one rename; complete runs
+  by default, partial runs only with `--allow-partial`; evidence problems always block.
+  `src/version.py` records the SignalScope version. `.gitignore` keeps nested raw
+  evidence, snapshots and comparisons out of Git, including for Boots.
+- **Checkpoint B — safe new run (640 tests).** `new-run` resets the results to their
+  header and removes the current raw evidence only when the latest valid snapshot
+  preserves the current run exactly. Evidence is retired into a hidden folder and
+  verified against the snapshot before deletion, and an interrupted reset is finished
+  by running `new-run` again. `list` shows the current run's derived state.
+- **Checkpoint C — comparison (670 tests).** `compare --from-run --to-run`: two valid
+  snapshots with the same core configuration and ordered question methodology,
+  compared directionally on the Gemini questions structurally complete in both runs,
+  with each run's coverage shown and neutral model and version warnings. The existing
+  `compare_audits` metrics are reused unchanged; `render_markdown` gained an optional
+  run-comparison block (default output byte-identical). Output goes to
+  `reports/<slug>/comparisons/<from-run>__<to-run>/GEO_PROGRESS.md`.
+- **Checkpoint C hardening (677 tests).** Snapshot validation recomputes
+  `requested_models` from the preserved evidence and rejects a manifest that
+  disagrees, so a comparison warning cannot be faked or hidden by editing a manifest.
+- **Checkpoint D — release polish.** Documentation of the history workflow, snapshot
+  format, comparison methodology and limitations; the dashboard shows version 2.4.0.
+- **Test protection.** 677 tests pass: the 568 from v2.3 (one dashboard version
+  assertion updated to 2.4.0) plus 109 audit history tests. The Boots golden reports,
+  including `GEO_PROGRESS.md`, are unchanged. No test calls Gemini.
+
+### Key design decisions
+
+- **Snapshot copies plus a controlled reset.** History is a set of self-contained,
+  immutable run folders; the current run stays at the top level, so the existing
+  runners, reports and dashboard are unchanged.
+- **Snapshot before new-run.** `new-run` is never an archive command; it only clears a
+  run that a valid snapshot already preserves.
+- **No active-run manifest.** The current run's state is derived from its files.
+- **Shared-question comparison.** Metrics use only questions structurally complete in
+  both runs, so missing evidence cannot look like a change in visibility; each run's
+  real coverage is reported separately.
+- **Strict comparability.** Different core configuration or question methodology is
+  refused rather than normalised. Different requested models or SignalScope versions
+  produce warnings, not refusals.
+- **Detection, not prevention.** SHA-256 hashes detect tampering; `requested_models`
+  is verified against the evidence; `signalscope_version` is recorded metadata only.
+
+### Known limitations
+
+- Comparisons cover exactly two snapshots at a time; there is no multi-run trend view.
+- In a comparison, GEO Maturity is evaluated over the shared question set only.
+- The dashboard shows the current run only; history is CLI-based.
+- Only one write operation (structured batch, `snapshot`, `new-run`) should run
+  against an audit at a time.
+- Snapshots are never deleted, repaired or pruned by SignalScope.
+
+### Deferred
+
+- v2.5: recurring monitoring workflow.
+- Later platform work: database, scheduling, multi-project interface, authentication,
+  cloud deployment; billing and client self-service only when justified.
+- Not planned for a specific version yet: trend analysis across more than two runs,
+  additional comparison metrics (average cited position, per-stage, per-competitor or
+  per-source rates), a dashboard history view, snapshot deletion or pruning, recording
+  the served model version.
+
+---
+
+## Previous release records
+
+### v2.3 — Structured Batch Evidence Collection
+
+
+**Status:** Released as v2.3.0. Recorded as written at release.
+
+#### Baseline: v2.2.0 (released)
 
 v2.2.0 made client audit creation repeatable (`src/create_audit.py`), with 484 tests.
 But a new audit could not yet be filled with structured evidence: the batch runner
@@ -12,13 +102,13 @@ recorded answers only, with blank structured fields, and the structured runners 
 processed a single fixed question. Only a 500-character snippet of each answer was
 kept.
 
-### Objective
+#### Objective
 
 Complete structured batch evidence collection for a configured audit, preserving every
 new Gemini answer in full, without changing the results file format or any existing
 calculation or report output for the Boots demonstration audit.
 
-### Delivered
+#### Delivered
 
 - **Checkpoint A — raw evidence, question states and single-question processing.**
   Full raw evidence files (`audits/<slug>/raw_responses/<question_id>__gemini.json`)
@@ -44,7 +134,7 @@ calculation or report output for the Boots demonstration audit.
 - **Test protection.** 568 tests pass: the 484 from v2.2, 84 structured batch and
   report-coverage tests. The v2.1 golden reports are unchanged. No test calls Gemini.
 
-### Known limitations
+#### Known limitations
 
 - Commands must be run from the repository root.
 - Only one structured batch should run against an audit at a time; a second writer is
@@ -55,7 +145,7 @@ calculation or report output for the Boots demonstration audit.
 - Historical rows are not backfilled, and `requested_model` records the model
   requested, not a confirmed served model version.
 
-### Deferred
+#### Deferred
 
 - v2.4: audit snapshots and longitudinal history.
 - v2.5: recurring monitoring workflow.
@@ -67,8 +157,6 @@ calculation or report output for the Boots demonstration audit.
   legacy answers-only runner.
 
 ---
-
-## Previous release records
 
 ### v2.2 — Repeatable Client Audit Creation
 

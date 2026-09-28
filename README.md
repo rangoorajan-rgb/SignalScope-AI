@@ -6,9 +6,9 @@
 
 **Measure AI Visibility • Generate Explainable Insights • Prioritise Optimisation • Measure Improvement**
 
-![Version](https://img.shields.io/badge/version-v2.3.0-blue)
+![Version](https://img.shields.io/badge/version-v2.4.0-blue)
 ![Python](https://img.shields.io/badge/python-3.11+-3776AB?logo=python&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-568-brightgreen)
+![Tests](https://img.shields.io/badge/tests-677-brightgreen)
 ![Architecture](https://img.shields.io/badge/architecture-modular-orange)
 ![Status](https://img.shields.io/badge/status-complete-success)
 
@@ -18,7 +18,7 @@ SignalScope AI is an evidence-first GEO intelligence platform that helps organis
 
 Instead of attempting to automatically optimise websites, SignalScope AI measures AI visibility, analyses evidence, generates explainable optimisation recommendations and measures improvement over time.
 
-**Version:** 2.3.0
+**Version:** 2.4.0
 
 </div>
 
@@ -34,6 +34,7 @@ Instead of attempting to automatically optimise websites, SignalScope AI measure
 - Streamlit Dashboard
 - Creating a New Audit
 - Collecting Structured Evidence
+- Audit History and Comparison
 - Architecture Overview
 - Technology Stack
 - Repository Structure
@@ -180,7 +181,7 @@ Artificial Intelligence is reserved for tasks that genuinely benefit from reason
 
 - Modular architecture
 - Four independent processing engines
-- 568 automated tests
+- 677 automated tests
 - Deterministic analytics
 - Explainable AI workflow
 - Structured Markdown reporting
@@ -274,13 +275,15 @@ The dashboard is intentionally read-only. It does not modify audit data, execute
 
 The dashboard displays the default audit only. Its project metadata and file locations come from that audit's `audit_config.json`; there is no client selector yet.
 
+The dashboard shows the **current run only**. It has no snapshot selector, history browser or comparison view; audit history is managed from the command line (see [Audit History and Comparison](#audit-history-and-comparison)). After `audit_history.py new-run`, the dashboard may appear empty or show no current audit evidence until the structured batch collects the fresh run; this is expected, and the previous run remains preserved in its snapshot.
+
 ## Project Scope
 
 The bundled demonstration engagement is **Boots UK**, in the Health & Beauty Retail category, within the United Kingdom market, benchmarked against Superdrug, Amazon and Holland & Barrett. It remains the default audit for every command and for the dashboard.
 
-Since v2.1, SignalScope AI provides a **multi-company audit foundation**: the Audit, Insights, Recommendation and Measurement Engines are no longer tied to one company and can run any audit that has its own configuration file. Since v2.2, an operator can create a new client audit workspace with one command (see [Creating a New Audit](#creating-a-new-audit)), and since v2.3 collect structured evidence for all of its questions with one resumable command (see [Collecting Structured Evidence](#collecting-structured-evidence)).
+Since v2.1, SignalScope AI provides a **multi-company audit foundation**: the Audit, Insights, Recommendation and Measurement Engines are no longer tied to one company and can run any audit that has its own configuration file. Since v2.2, an operator can create a new client audit workspace with one command (see [Creating a New Audit](#creating-a-new-audit)), and since v2.3 collect structured evidence for all of its questions with one resumable command (see [Collecting Structured Evidence](#collecting-structured-evidence)). Since v2.4, a completed run can be preserved as an immutable snapshot, a fresh run collected later, and two preserved runs compared (see [Audit History and Comparison](#audit-history-and-comparison)).
 
-SignalScope AI remains an **operator-assisted audit system, not a SaaS product**. It has no audit snapshots or history, no scheduled monitoring, no persistent database, no authentication or user accounts, no billing, no client self-service and no client selector in the dashboard.
+SignalScope AI remains an **operator-assisted audit system, not a SaaS product**. It has no scheduled monitoring, no persistent database, no authentication or user accounts, no billing, no client self-service, no client selector and no history view in the dashboard.
 
 ## Audit Configuration
 
@@ -453,7 +456,7 @@ audits/<slug>/raw_responses/<question_id>__gemini.json
 
 Raw evidence files are never overwritten. A malformed or conflicting file is reported and left untouched for the operator to investigate; there is no automatic repair.
 
-**Raw AI responses are not committed to Git.** `.gitignore` ignores every `raw_responses/` folder under `audits/`, including the Boots demonstration audit's (whose other files remain tracked), and client audit folders are ignored entirely.
+**Raw AI responses are not committed to Git.** `.gitignore` ignores every `raw_responses/` folder under `audits/` at any depth (including those inside snapshots, and the Boots demonstration audit's, whose other files remain tracked), and client audit folders are ignored entirely.
 
 ## Existing Results
 
@@ -464,6 +467,170 @@ Raw evidence files are never overwritten. A malformed or conflicting file is rep
 ## Legacy Answers-Only Runner
 
 `src/run_batch_audit.py` is kept for backwards compatibility. It saves only a 500-character snippet of each answer, leaves the structured fields blank, and stores no raw evidence. **Use `run_structured_batch_audit.py` for all new evidence collection;** a row created by the legacy runner is treated as legacy incomplete and is not completed later.
+
+---
+
+# Audit History and Comparison
+
+Since v2.4, an audit keeps a history of its runs. A finished run is preserved as an immutable **snapshot**, the current files are then reset for a **new run**, and two snapshots of the same audit can be **compared** to measure change. All history commands live in [src/audit_history.py](src/audit_history.py) and are run from the repository root. None of them calls Gemini; only the structured batch does.
+
+## Workflow
+
+```bash
+# 1. Create the audit workspace
+python src/create_audit.py --slug acme-uk-garden ...
+
+# 2. Review audits/acme-uk-garden/buyer_questions.csv
+
+# 3. Collect structured evidence (start small, then run the rest)
+python src/run_structured_batch_audit.py --audit acme-uk-garden --limit 1
+python src/run_structured_batch_audit.py --audit acme-uk-garden --limit 5
+python src/run_structured_batch_audit.py --audit acme-uk-garden
+
+# 4. Preserve the current run
+python src/audit_history.py snapshot --audit acme-uk-garden
+#    (a deliberately incomplete run: add --allow-partial)
+
+# 5. Inspect the history
+python src/audit_history.py list --audit acme-uk-garden
+
+# 6. Start a fresh collection cycle (only after step 4)
+python src/audit_history.py new-run --audit acme-uk-garden
+
+# 7. Collect the later run with the same structured batch (step 3)
+# 8. Snapshot the later run (step 4)
+
+# 9. Compare two preserved runs
+python src/audit_history.py compare \
+  --audit acme-uk-garden \
+  --from-run <EARLIER_RUN_ID> \
+  --to-run <LATER_RUN_ID>
+```
+
+> **Snapshot must come before new-run.** `new-run` is not an archive command: it clears the current results and evidence, and it refuses to run unless the latest snapshot already preserves the current run exactly.
+
+## Snapshots
+
+`snapshot` copies the current run into:
+
+```text
+audits/<slug>/snapshots/<run-id>/
+  snapshot_manifest.json
+  audit_config.json          # the configuration used for this run
+  buyer_questions.csv        # the question set used for this run
+  audit_results.csv          # the structured results
+  raw_responses/             # the full raw answers, if the run has any
+  reports/audit_report.md    # rendered from this snapshot's own copies
+  reports/GEO_FINDINGS.md
+```
+
+- **Run ID.** `YYYYMMDDTHHMMSSZ`, the UTC time the snapshot was created (for example `20261001T090000Z`). It sorts chronologically and is safe as a folder name on Windows. Two snapshots cannot share a run ID.
+- **Self-contained.** The config, questions, results and evidence are byte-for-byte copies, so a historical run stays interpretable even if the audit's current files change later.
+- **Frozen reports.** The audit report and GEO findings are rendered once, from the snapshot's own copies, to record the deterministic reports for that run. A later SignalScope version may word reports differently; the preserved source evidence is what keeps the run interpretable. Recommendations are **not** part of a snapshot.
+- **Immutable once published.** A snapshot is built in a staging folder, checked, and published with a single rename, so either the complete snapshot exists or nothing does. SignalScope never writes into, overwrites, repairs or deletes a published snapshot. There is no `--force`, no repair and no pruning.
+- **Complete or partial.** A run is *complete* when every buyer question has a structurally complete Gemini result, and *partial* otherwise. `snapshot` refuses a partial run unless `--allow-partial` is given, so an incomplete run is only preserved deliberately. A stored raw answer that was never successfully analysed, and a legacy incomplete row, do not count as structurally complete. Evidence integrity problems (for example a raw answer that disagrees with its results row) always block a snapshot, with or without `--allow-partial`. A run with no structurally complete result, or one already preserved, is refused.
+
+### Snapshot Manifest
+
+| Field | Meaning |
+|---|---|
+| `format_version` | Manifest format (`1`) |
+| `audit_slug` | The audit the snapshot belongs to |
+| `run_id` | The run ID; must match the folder name |
+| `created_at` | The same instant as ISO-8601 UTC (`2026-10-01T09:00:00Z`) |
+| `signalscope_version` | The SignalScope version recorded when the snapshot was created (see below) |
+| `status` | `complete` or `partial` |
+| `question_count` | Number of buyer questions in the snapshot |
+| `structurally_complete_count` | Number of questions with a structurally complete Gemini result |
+| `requested_models` | Sorted, distinct Gemini models requested for the preserved raw answers (`[]` when the run has none) |
+| `files` | SHA-256 hash of every other file in the snapshot |
+
+### Integrity Verification
+
+Every snapshot is validated whenever it is read: each file's SHA-256 hash must match the manifest, no undeclared file may be present, every manifest field must be well formed, and the coverage counts and `requested_models` are **recomputed** from the snapshot's own files and must match. A snapshot that fails any check is reported as invalid by `list` and cannot be used by `new-run` or `compare`.
+
+This is tamper **detection**, not tamper prevention: the hashes are not a digital signature, and anyone with file access can still change a snapshot — the change is detected, not blocked.
+
+- `requested_models` is derived from the preserved raw evidence, so a manifest that disagrees with the evidence makes the snapshot invalid. It records the model SignalScope *asked for*, not proof of the exact model version that answered.
+- `signalscope_version` is recorded provenance metadata only. It identifies the version recorded at creation time; it is not cryptographic proof and cannot be recomputed from historical code.
+
+## Listing History and Current-Run States
+
+`list` shows every snapshot (run ID, creation time, status, coverage, models, version and integrity result) and the state of the current run. It is read-only and exits with status 1 if any snapshot is invalid. The current-run state is derived from the files themselves; there is no active-run manifest:
+
+| State | Meaning |
+|---|---|
+| fresh | No result rows (of any engine) and no raw evidence |
+| in progress / partial | Results or evidence exist, but not every question is structurally complete; not snapshotted |
+| complete | Every question is structurally complete; not yet snapshotted |
+| snapshotted | Identical to the latest snapshot, which is valid |
+| reset interrupted | A `new-run` was interrupted; run `new-run` again to finish it |
+
+## Starting a New Run
+
+```bash
+python src/audit_history.py new-run --audit <slug>
+```
+
+`new-run` proceeds only when the latest snapshot is valid and the current run matches it exactly (config, questions, results and every raw evidence file). It never falls back to an older snapshot, and it refuses if the current run has changed since the snapshot ("snapshot the current run first") or is already fresh. On success:
+
+- `audit_config.json` and `buyer_questions.csv` are kept unchanged;
+- `audit_results.csv` is reset to the valid header-only 11-column file;
+- the current `raw_responses/` folder is removed (its contents remain in the snapshot);
+- the snapshot is not touched;
+- the structured batch sees every question as not started, and the next collection asks Gemini again.
+
+**Interrupted resets are recoverable.** The evidence is first moved into a hidden `snapshots/.retired-raw-<run-id>-*` folder, then the results are reset, then the retired evidence is verified against the snapshot and deleted. If this is interrupted, `list` shows *reset interrupted* and `snapshot` refuses; running `new-run` again verifies the retired evidence against the snapshot and finishes the reset. At every point the snapshot holds the complete previous run. Do not delete a retirement folder by hand.
+
+## Comparing Two Runs
+
+```bash
+python src/audit_history.py compare --audit <slug> --from-run <EARLIER_RUN_ID> --to-run <LATER_RUN_ID>
+```
+
+The comparison is directional: `--from-run` must be earlier than `--to-run`, and the two must differ. The runs are never swapped silently. Both snapshots must pass full validation, and only their own copies are read — never the current run.
+
+**Comparability.** Two snapshots are compared only when their own configs have the same audit slug, brand, market, category and **ordered** competitor list, and their question files have the same ordered sequence of `question_id`, `buyer_journey_stage` and question text. Display-only fields (company name, report subject, question-library name) and question intent or notes may differ. If a question was added, removed, reordered, reworded or moved to another stage, or a core config value changed, the comparison is refused with a list of the differences. SignalScope does not normalise or partially compare changed methodologies.
+
+**Shared-question rule.** Metrics use only Gemini questions that are structurally complete in **both** runs, and exactly the same question IDs on both sides. Perplexity and other manually entered rows, and incomplete Gemini rows, are excluded. Each run's own coverage is shown separately. For example:
+
+```text
+From run: 40 / 40 structurally complete     To run: 30 / 40 structurally complete
+Comparison universe: the 30 questions complete in both runs
+Metrics: those 30 vs the same 30 (not 40 vs 30)
+```
+
+This prevents a change caused only by missing evidence from looking like a change in visibility. Unequal coverage is allowed and both runs may be partial, but at least one shared structurally complete question is required; with none, the comparison is refused.
+
+**Metrics.** The comparison reuses the existing Measurement Engine metrics unchanged: Brand Visibility, Brand Mention Frequency, Competitor Mention Change, Positive Sentiment Rate, Authority Source Change, Funnel Stage Coverage and GEO Maturity. No composite score is calculated.
+
+**GEO Maturity caveat.** In a comparison, GEO Maturity is evaluated over the shared question set only (the question total given to the Measurement Engine is the shared count). Its coverage requirement is therefore always met, and the tier reflects brand visibility on the shared questions. When either run is partial, the comparison's tier is not that run's maturity over its full question library; each run's actual coverage is shown separately in the report.
+
+**Warnings.** If the two snapshots record different requested model sets, or different SignalScope versions, the comparison still runs and the report shows a neutral warning. These warnings do not mean the difference caused any metric change, and they do not make the results invalid.
+
+**Output.** The report is written to:
+
+```text
+reports/<slug>/comparisons/<from-run>__<to-run>/GEO_PROGRESS.md
+```
+
+It is a derived report, not part of either snapshot: re-running the same pair regenerates and replaces it, and the snapshots are never modified. In the report, *Before* is the from run and *After* is the to run; a Run Comparison section names both runs, each run's coverage, the number of shared questions used and any warnings. Nothing is written if any check fails.
+
+## Operator Safety
+
+- Run only **one write operation per audit at a time**: never run the structured batch, `snapshot` or `new-run` concurrently for the same audit. The commands re-check their inputs and stop rather than corrupt data, but concurrent use is not supported.
+- `list` and `compare` are read-only with respect to the audit, but avoid editing an audit's files while other commands for it are running.
+- `snapshot`, `list`, `new-run` and `compare` make no Gemini calls. Only the structured batch calls Gemini.
+
+## Upgrading from v2.3
+
+No migration is required. An existing v2.3 workspace (`audit_config.json`, `buyer_questions.csv`, `audit_results.csv` and any `raw_responses/`) simply becomes the current, unsnapshotted run. The first `snapshot` creates the `snapshots/` folder; nothing existing is rewritten. Rows without raw evidence (such as the Boots demonstration rows) can be preserved with `--allow-partial` and record `requested_models: []`.
+
+The legacy `run_batch_audit.py` saves only answer snippets, leaves the structured fields blank and stores no raw evidence, so it should not be used to collect runs for history; use `run_structured_batch_audit.py`.
+
+## Git and Confidentiality
+
+Client audit folders are ignored entirely. Within any audit (including the Boots demonstration audit), `raw_responses/` folders at any depth, `snapshots/` folders and `reports/<slug>/comparisons/` are ignored, so full raw answers, snapshots and comparisons are never committed. The Boots demonstration audit's top-level data and reports remain tracked.
 
 ---
 
@@ -560,6 +727,8 @@ SignalScope-AI/
 │   ├── geo_findings_analyzer.py     # Insights Engine: GEO_FINDINGS.md
 │   ├── recommendation_engine.py     # Recommendation Engine: GEO_RECOMMENDATIONS.md
 │   ├── measurement_engine.py        # Measurement Engine: GEO_PROGRESS.md
+│   ├── audit_history.py             # Audit history: snapshot, list, new-run, compare (operator CLI)
+│   ├── version.py                   # SignalScope version recorded in snapshot manifests
 │   ├── run_end_to_end_demo.py       # Full pipeline, single question
 │   ├── check_gemini_connection.py   # Standalone Gemini connectivity check
 │   └── dashboard_data.py            # Non-UI data layer for the Streamlit dashboard
@@ -571,14 +740,16 @@ SignalScope-AI/
 │       ├── audit_config.json        # Client and scope values for this audit
 │       ├── buyer_questions.csv      # Placeholder-substituted question set
 │       ├── audit_results.csv        # Structured audit evidence (11-column schema)
-│       └── raw_responses/           # Full Gemini answers from v2.3 runs (git-ignored)
+│       ├── raw_responses/           # Full Gemini answers from v2.3 runs (git-ignored)
+│       └── snapshots/<run-id>/      # Immutable preserved runs, when created (git-ignored)
 │
 ├── reports/
 │   └── boots-uk-health-beauty/
 │       ├── audit_report.md
 │       ├── GEO_FINDINGS.md
 │       ├── GEO_RECOMMENDATIONS.md
-│       └── GEO_PROGRESS.md
+│       ├── GEO_PROGRESS.md
+│       └── comparisons/             # Derived run comparisons, when created (git-ignored)
 │
 ├── questions/
 │   └── buyer_questions_master.csv   # Reusable, placeholder-only question library
@@ -677,7 +848,7 @@ This design decision keeps the platform focused on intelligence rather than auto
 
 After improvements have been implemented, a second audit can be performed.
 
-The Measurement Engine compares the previous and current audits to identify genuine changes.
+The Measurement Engine compares the previous and current audits to identify genuine changes. Since v2.4, the earlier and later audits are two immutable snapshots of the same audit, compared with `audit_history.py compare` (see [Audit History and Comparison](#audit-history-and-comparison)).
 
 Rather than assuming improvements occurred, every reported change must be supported by measurable evidence.
 
@@ -1220,7 +1391,7 @@ Rather than relying solely on manual testing, SignalScope AI includes an extensi
 
 ## Test Coverage
 
-The project contains **568 automated tests**, including:
+The project contains **677 automated tests**, including:
 
 - unit tests
 - integration tests
@@ -1241,6 +1412,8 @@ v2.1 added three regression safeguards:
 v2.2 added audit-creation tests: generating the Boots workspace from its configuration and the master template reproduces the committed Boots `audit_config.json` and `buyer_questions.csv` byte for byte, and fictional-client tests cover validation, collision refusal, rollback after injected failures, dry runs, the CLI and immediate `--audit` use.
 
 v2.3 added structured batch tests: a full 40-question run for a fictional client with Gemini faked, complete raw evidence, resuming (including from a saved answer without a second answer call), `--limit` and `--delay`, failure and stop behaviour, interruption, protection of the historical Boots rows (run against a copy), and the create → collect → report chain, including the complete-versus-partial report wording. No test calls the Gemini API.
+
+v2.4 added audit history tests: complete and partial snapshots, SHA-256 tamper detection, verification of recorded requested models against the preserved evidence, failure rollback, the safe new-run reset and recovery from every interruption point, a multi-run lifecycle, and run comparisons (the shared-question rule, unequal and partial coverage, every comparability refusal, direction, model and version warnings). All of them use fictional audits in temporary folders with Gemini faked; the Boots golden reports are unchanged.
 
 ---
 
@@ -1452,14 +1625,16 @@ Current limitations include:
 - no web interface
 - no authentication
 - no scheduled monitoring
+- no history view in the dashboard; comparisons cover exactly two snapshots at a time
 - new audits require exactly three competitors and use the single master question template
 
 Operational rules:
 
 - **Run commands from the repository root.** `create_audit.py` always writes to the project's own `audits/` folder, but the `--audit` runners resolve audit and report paths relative to the current working directory.
 - **Run one structured batch per audit at a time.** The runner detects another process writing to the same audit and stops rather than risk duplicate or corrupted results.
+- **Run one write operation per audit at a time.** Do not run the structured batch, `snapshot` or `new-run` concurrently for the same audit (see [Operator Safety](#operator-safety)).
 - **Raw evidence needs hard-link support.** Evidence files are published with a filesystem hard link so an existing file can never be replaced. On a filesystem without hard links the run stops rather than fall back to overwriting.
-- **Leftover temporary files.** Failed or interrupted (Ctrl-C) runs clean up after themselves. Only a hard process kill can leave an `audits/.creating-<slug>-*` staging folder (from `create_audit.py`) or a dot-prefixed `.tmp` file in a `raw_responses/` folder (from the structured batch). Neither is used as evidence, and both can be deleted manually.
+- **Leftover temporary files.** Failed or interrupted (Ctrl-C) runs clean up after themselves. Only a hard process kill can leave an `audits/.creating-<slug>-*` staging folder (from `create_audit.py`) or a dot-prefixed `.tmp` file in a `raw_responses/` folder (from the structured batch). Neither is used as evidence, and both can be deleted manually. A hard kill during `snapshot` can likewise leave a `snapshots/.creating-*` staging folder, which is never listed or used as a snapshot. A `snapshots/.retired-raw-*` folder is different: it belongs to an unfinished `new-run` and must not be deleted by hand; run `new-run` again to finish it.
 - **Historical rows are not backfilled.** Legacy incomplete Gemini rows are not reprocessed, and older complete rows are not regenerated to create raw evidence (see [Existing Results](#existing-results)).
 
 These limitations were accepted in favour of demonstrating software architecture and engineering quality.
@@ -1474,8 +1649,8 @@ These limitations were accepted in favour of demonstrating software architecture
 |---|---|---|
 | v2.1 | Multi-company configuration foundation | Released |
 | v2.2 | Repeatable client audit creation | Released |
-| v2.3 | Structured batch evidence collection | Current release |
-| v2.4 | Audit snapshots and longitudinal history | Planned |
+| v2.3 | Structured batch evidence collection | Released |
+| v2.4 | Audit snapshots and longitudinal history | Current release (ready for release) |
 | v2.5 | Recurring monitoring workflow | Planned |
 
 Later platform work (database, scheduling, a multi-project interface, authentication and cloud deployment, with billing and client self-service only when justified) is not yet scheduled.
@@ -1589,7 +1764,7 @@ See the accompanying `LICENSE` file for full details.
 
 <div align="center">
 
-**SignalScope AI v2.3.0**
+**SignalScope AI v2.4.0**
 
 *Evidence-Driven Generative Engine Optimisation Intelligence Platform*
 

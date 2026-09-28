@@ -68,6 +68,12 @@ response. See [METHODOLOGY.md](METHODOLOGY.md#independent-query-methodology).
 Rows collected before v2.3 (and Perplexity rows, which were recorded manually) have no
 raw evidence file; for them, only `answer_snippet` survives.
 
+**Implementation note (v2.4).** An audit's evidence is stored as three kinds of data
+(see [Audit Storage](#9-audit-storage-v24)): the current run, immutable historical
+snapshots, and derived comparisons. The 11-column `audit_results.csv` format is the
+same in all of them; `answer_snippet` remains the 500-character structured-results
+field and `raw_response_text` remains the complete raw evidence.
+
 ## 4. Data Validation
 
 Records the consultant's check of collected evidence before it proceeds to AI
@@ -142,3 +148,33 @@ Represents the final, client-facing output of an engagement.
 | `authored_by` | string | Consultant who authored the recommendation. |
 | `approved_by` | string | Consultant or senior reviewer who signed off the recommendation for delivery. |
 | `delivery_date` | date | Date the recommendation was delivered to the client. |
+
+## 9. Audit Storage (v2.4)
+
+Unlike sections 1–8, this section describes implemented storage.
+
+| Kind | Location | Content |
+|---|---|---|
+| Current run | `audits/<slug>/` | `audit_config.json`, `buyer_questions.csv`, `audit_results.csv` and `raw_responses/`; the run being collected. Its state (fresh, in progress / partial, complete, snapshotted, reset interrupted) is derived from these files; there is no active-run manifest. |
+| Historical snapshot | `audits/<slug>/snapshots/<run-id>/` | An immutable copy of one run: its own config, questions, results and raw evidence, `snapshot_manifest.json`, and frozen `reports/audit_report.md` and `reports/GEO_FINDINGS.md`. Recommendations are not included. |
+| Derived comparison | `reports/<slug>/comparisons/<from-run>__<to-run>/GEO_PROGRESS.md` | A comparison of two snapshots. Outside the snapshots, and regenerated if the same pair is compared again. |
+
+The run ID is the snapshot's creation time in UTC, `YYYYMMDDTHHMMSSZ` (for example
+`20261001T090000Z`).
+
+### Snapshot Manifest
+
+`snapshot_manifest.json` fields, in order:
+
+| Field | Type | Description |
+|---|---|---|
+| `format_version` | integer | Manifest format, `1`. |
+| `audit_slug` | string | The audit the snapshot belongs to. |
+| `run_id` | string | The run ID; must equal the snapshot folder name. |
+| `created_at` | string | The same instant as ISO-8601 UTC, `YYYY-MM-DDTHH:MM:SSZ`. |
+| `signalscope_version` | string | The SignalScope version recorded when the snapshot was created. Recorded provenance metadata only: format-checked, not independently verifiable. |
+| `status` | string | `complete` (every question structurally complete) or `partial`. |
+| `question_count` | integer | Number of buyer questions; recomputed on validation. |
+| `structurally_complete_count` | integer | Questions with a structurally complete Gemini result; recomputed on validation. |
+| `requested_models` | list of strings | Sorted, distinct `requested_model` values of the snapshot's valid raw evidence files (`[]` if it has none). Recomputed from the evidence on validation; a mismatch invalidates the snapshot. |
+| `files` | object | SHA-256 hash of every other file in the snapshot, keyed by relative path. |
