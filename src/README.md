@@ -2,9 +2,11 @@
 
 Contains the application source code implementing the SignalScope AI workflow.
 
-The primary v2.4 operator workflow uses three commands: `create_audit.py` (create an
-audit workspace), `run_structured_batch_audit.py` (collect evidence; the only one of
-the three that calls Gemini) and `audit_history.py` (preserve, reset and compare runs).
+The primary operator workflow: `create_audit.py` (create an audit workspace),
+`run_structured_batch_audit.py` (collect the baseline and any manual run; it calls
+Gemini), `audit_history.py` (preserve, reset and compare runs) and, since v2.5,
+`run_monitoring_cycle.py` (repeat that lifecycle when an external scheduler invokes
+it). `run_batch_audit.py` remains a legacy answers-only runner.
 
 ## audit_config.py
 
@@ -115,6 +117,34 @@ the "Audit History and Comparison" section of the [README](../README.md).
 
 Corresponding tests are in
 [tests/test_audit_history.py](../tests/test_audit_history.py).
+
+## run_monitoring_cycle.py
+
+One recurring monitoring cycle (v2.5). It is not a scheduler: Windows Task Scheduler
+or cron decides when to run it, and each invocation performs at most one cycle.
+
+```
+python src/run_monitoring_cycle.py --audit <slug> --interval-days N [--dry-run]
+```
+
+- `plan_cycle()` is read-only: it derives the one safe next action from the current
+  run and its snapshots (evidence problems, the manual baseline, snapshot validity, the
+  v2.4 comparability rules, the due check, and a Gemini key-presence check only when
+  collection is needed) and never calls Gemini or writes a file. `--dry-run` prints it.
+- `run_monitoring_cycle()` takes the audit's `AuditLock`, re-plans while holding it and
+  acts: `start_new_run` when due (or to finish an interrupted reset), the structured
+  batch in chunks of 5 with a spend circuit breaker, `create_snapshot` for complete
+  runs only, and `compare_snapshots` for the previous → new pair. It returns a
+  `CycleResult`; the CLI prints it with a one-line JSON summary and exits 0 (done or
+  not due), 1 (operator action), 3 (already running) or 4 (incomplete, resumable).
+- `AuditLock` is a per-audit operating-system lock on `audits/<slug>/.monitoring.lock`
+  (`msvcrt` on Windows, `fcntl` elsewhere), released by the kernel if the process
+  dies. The file's metadata is diagnostic only.
+
+See the "Recurring Monitoring" section of the [README](../README.md).
+
+Corresponding tests are in
+[tests/test_run_monitoring_cycle.py](../tests/test_run_monitoring_cycle.py).
 
 ## audit_runner.py
 

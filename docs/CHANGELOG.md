@@ -6,6 +6,65 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 project will adhere to [Semantic Versioning](https://semver.org/) once a first
 functional release exists.
 
+## [2.5.0] — 2026-09-28
+
+Recurring monitoring. The proven v2.4 lifecycle (new run, collection, snapshot,
+comparison) can now run unattended: an external scheduler invokes one safe monitoring
+cycle at a time, and SignalScope decides whether a cycle is due and what the one safe
+next action is. The results file format, the structured batch, the audit history
+commands and all metrics are unchanged, and the Boots UK Health & Beauty demonstration
+audit and its reports are unchanged. Ready for release.
+
+### Added
+
+- `src/run_monitoring_cycle.py`: a one-cycle monitoring command
+  (`--audit`, `--interval-days`, `--dry-run`) that performs at most one cycle per
+  invocation, reusing `start_new_run`, the structured batch, `create_snapshot` and
+  `compare_snapshots` rather than reimplementing them.
+- A read-only planner and `--dry-run`: the next action, derived from the current run
+  and its snapshots, with no Gemini call and no file written.
+- Pre-collection guards: evidence integrity, a valid manual baseline (monitoring never
+  creates the first baseline), no fallback from an invalid latest snapshot, the v2.4
+  comparability rules applied to the current methodology, and a Gemini key-presence
+  check only when collection is needed and before new-run changes anything.
+- A per-audit operating-system lock (`audits/<slug>/.monitoring.lock`; `msvcrt` on
+  Windows, `fcntl` on Linux/macOS) held for the whole cycle; a second process for the
+  same audit exits 3.
+- A due guard: a new cycle starts only when the latest snapshot is at least
+  `--interval-days` old (a UTC duration); one invocation never runs catch-up cycles.
+- Resumable collection in chunks of 5 questions with a spend circuit breaker that
+  stops when a chunk makes no progress.
+- Automatic snapshots of structurally complete runs only (`allow_partial=False`).
+- Automatic comparison of the immediately previous snapshot with the new one, and
+  comparison-only recovery when a snapshot's comparison is missing; methodology breaks
+  (manual re-baselines) are never compared across.
+- Exit codes 0 (done or not due), 1 (operator action), 2 (usage), 3 (already running)
+  and 4 (incomplete, resumable), and a one-line JSON summary as the last output line.
+- Documentation for external scheduling with Windows Task Scheduler or cron.
+- Tests: `tests/test_run_monitoring_cycle.py` (102 tests). No test calls Gemini.
+
+### Changed
+
+- Version 2.5.0 (`src/version.py`, recorded in new snapshot manifests) and the
+  dashboard version display.
+- The monitoring workflow now supports unattended, externally triggered operation.
+- `.gitignore`: `audits/*/.monitoring.lock` is ignored, including for the Boots
+  demonstration audit.
+- Documentation (README, data dictionary, methodology, module READMEs).
+
+### Preserved / Not Included
+
+- The v2.3/v2.4 manual commands, the 11-column results schema, the structured batch,
+  the audit history rules and all metrics are unchanged.
+- Not included: an internal scheduler or daemon, a database, authentication, billing
+  or a SaaS portal, automatic acceptance of partial runs, automatic recommendations,
+  distributed or network-filesystem locking, Make.com or other cloud triggers, and
+  monitoring controls in the dashboard.
+- Known limitation: a persistently failing question may be re-attempted in later
+  chunks of the same cycle, because the batch always starts from the earliest
+  collectable question; spend stays bounded and completed questions are never
+  repeated.
+
 ## [2.4.0] — 2026-09-28
 
 Audit snapshots and longitudinal history. An operator can preserve a finished run as an

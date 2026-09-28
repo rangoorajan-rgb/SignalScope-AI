@@ -178,3 +178,27 @@ The run ID is the snapshot's creation time in UTC, `YYYYMMDDTHHMMSSZ` (for examp
 | `structurally_complete_count` | integer | Questions with a structurally complete Gemini result; recomputed on validation. |
 | `requested_models` | list of strings | Sorted, distinct `requested_model` values of the snapshot's valid raw evidence files (`[]` if it has none). Recomputed from the evidence on validation; a mismatch invalidates the snapshot. |
 | `files` | object | SHA-256 hash of every other file in the snapshot, keyed by relative path. |
+
+## 10. Monitoring Lock (v2.5)
+
+`audits/<slug>/.monitoring.lock` is operational state used by
+`src/run_monitoring_cycle.py`, not audit evidence. It is never part of a snapshot, is
+git-ignored for every audit (including the Boots demonstration audit), and does not
+change the 11-column `audit_results.csv` schema.
+
+Ownership is decided only by the operating system's lock on the open file: the file
+may remain after a cycle ends, and its existence does not mean the audit is locked.
+While a cycle holds the lock, the file contains diagnostic details that SignalScope
+never reads to decide anything:
+
+| Field | Type | Description |
+|---|---|---|
+| `audit_slug` | string | The audit being monitored. |
+| `started_at` | string | When the lock was taken, `YYYY-MM-DDTHH:MM:SSZ` (UTC). |
+| `process_id` | integer | The holding process, for diagnosis only. |
+| `hostname` | string | The holding machine, for diagnosis only. |
+| `signalscope_version` | string | The SignalScope version that took the lock. |
+
+The monitoring command's final output line is a JSON summary for scheduler wrappers
+(see the "Recurring Monitoring" section of the [README](../README.md)); it is printed,
+not stored, and SignalScope keeps no monitoring status file or database.

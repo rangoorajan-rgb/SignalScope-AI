@@ -276,7 +276,6 @@ class CompleteSnapshotTests(_HistoryTestCase):
         self.assertEqual(manifest["run_id"], RUN_1)
         self.assertEqual(manifest["created_at"], "2026-10-01T09:00:00Z")
         self.assertEqual(manifest["signalscope_version"], SIGNALSCOPE_VERSION)
-        self.assertEqual(SIGNALSCOPE_VERSION, "2.4.0")
         self.assertEqual(manifest["status"], "complete")
         self.assertEqual((manifest["question_count"], manifest["structurally_complete_count"]), (40, 40))
         self.assertEqual(manifest["requested_models"], ["gemini-2.5-flash"])

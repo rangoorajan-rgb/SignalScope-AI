@@ -4,11 +4,38 @@ Automated tests covering the SignalScope AI workflow's source code in
 [src/](../src/). All tests use Python's built-in `unittest` module, never call the
 real Gemini API, and never write to the committed audit data or reports.
 
-Run the complete suite (677 tests) from the repository root with:
+Run the complete suite (779 tests) from the repository root with:
 
 ```
 python -m unittest discover -s tests -v
 ```
+
+## v2.5 recurring monitoring tests
+
+- `test_run_monitoring_cycle.py` (102 tests) — `src/run_monitoring_cycle.py`:
+  - the planner for every start state (evidence problems, no baseline, invalid latest
+    or previous snapshot, interrupted reset, fresh, in progress, partial with nothing
+    left, complete, comparison missing, not due, due, re-baseline), the due
+    calculation and its UTC boundaries, the methodology guard, and API-key ordering;
+  - the per-audit lock: same-audit contention, release, a killed process releasing it,
+    reuse of a leftover file, different audits, diagnostic-only metadata, fail-closed
+    behaviour, and a dry run that writes nothing and creates no lock file;
+  - execution: re-planning under the lock and after new-run, chunked collection and
+    the spend circuit breaker (temporary, permanent and malformed-analysis failures,
+    classified through the released error paths), resume, stored answers analysed
+    without a new answer call, absolute paths, complete-only snapshots, the partial-run
+    policy and interrupted-reset recovery;
+  - comparison: previous → new direction, comparison-only recovery without a key,
+    refusals (including zero shared questions) and write failures that keep the
+    snapshot, operator-accepted partial snapshots, re-baseline boundaries, recovery
+    after a crash at each step, a three-cycle history and the duplicate-trigger guard;
+  - the CLI's exit codes and JSON summary.
+
+  Mutation checks during development confirmed that these tests catch each
+  deliberately broken safeguard. Every audit is fictional and temporary, answers and
+  analysis are faked, the Gemini SDK is blocked and the real `.env` is never read; the
+  real `audits/`, `reports/` and master template are verified unchanged, and no
+  `.monitoring.lock` may appear under the real `audits/`.
 
 ## v2.4 audit history tests
 

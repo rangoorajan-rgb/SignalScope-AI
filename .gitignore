@@ -49,6 +49,9 @@ audits/*
 audits/*/raw_responses/
 audits/**/raw_responses/
 audits/*/snapshots/
+# The recurring-monitoring lock (src/run_monitoring_cycle.py) is local
+# process state, never committed - including for the Boots audit.
+audits/*/.monitoring.lock
 reports/*
 !reports/boots-uk-health-beauty/
 !reports/boots-uk-health-beauty/**
