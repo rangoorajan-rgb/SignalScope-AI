@@ -5,9 +5,10 @@ workflow, not an autonomous agent. Parts of it are implemented: collecting curre
 audit evidence, structured Gemini analysis of each saved answer, immutable audit
 snapshots and history, the new-run lifecycle, and deterministic comparison of two
 preserved runs (see the "As implemented" notes and
-[Longitudinal Measurement](#longitudinal-measurement)). Other parts remain design
-intent — recurring scheduling and automatic monitoring are not yet implemented, nor
-are later platform capabilities (see [CURRENT_SPRINT.md](../CURRENT_SPRINT.md)).
+[Longitudinal Measurement](#longitudinal-measurement)), and recurring monitoring
+triggered by an external scheduler ([Recurring Monitoring](#recurring-monitoring)).
+Other parts remain design intent, including later platform capabilities such as
+built-in or cloud scheduling (see [CURRENT_SPRINT.md](../CURRENT_SPRINT.md)).
 
 ## Independent Query Methodology
 
@@ -145,3 +146,33 @@ collect → snapshot → new-run → collect → snapshot → compare
   run is partial, it is not that run's maturity over its full question library.
 - **Model variability still applies.** A difference between two runs is a measured
   difference between two recorded datasets, not proof of what caused it.
+
+## Recurring Monitoring
+
+As implemented in v2.5 (`src/run_monitoring_cycle.py`), the longitudinal lifecycle can
+repeat on a fixed interval, triggered by an external scheduler:
+
+```text
+manual baseline → (when due) new-run → collect / resume → complete snapshot
+  → compare previous snapshot → new snapshot
+```
+
+- **Manual baseline.** The first baseline is always collected, reviewed and snapshotted
+  by the operator; monitoring never creates it.
+- **Complete-only automated snapshots.** Automation preserves a run only when every
+  question is structurally complete. A partial run is resumed, or left for the
+  operator, who may deliberately accept it with `snapshot --allow-partial`; such a
+  snapshot is then compared with the usual shared-question and coverage rules.
+- **Methodology compatibility.** Before any collection, the current configuration and
+  question library are checked against the latest snapshot with the same rules as a
+  comparison; an incompatible change stops the cycle before any Gemini call.
+- **Re-baselining.** A newer snapshot deliberately taken under changed core methodology
+  becomes the new baseline; no comparison is made across the methodology break, and no
+  older snapshot is used instead.
+- **Comparison direction.** Each cycle compares the immediately previous snapshot with
+  the new one, earlier to later. The first baseline is not automatically compared with
+  every later run.
+- **Evidence before derived output.** A comparison failure never removes the snapshot
+  it concerns; the comparison is retried on its own.
+- **No automatic recommendations.** Recurring monitoring measures; it does not run the
+  Recommendation Engine, which would add LLM calls and variability.

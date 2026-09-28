@@ -6,9 +6,9 @@
 
 **Measure AI Visibility • Generate Explainable Insights • Prioritise Optimisation • Measure Improvement**
 
-![Version](https://img.shields.io/badge/version-v2.4.0-blue)
+![Version](https://img.shields.io/badge/version-v2.5.0-blue)
 ![Python](https://img.shields.io/badge/python-3.11+-3776AB?logo=python&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-677-brightgreen)
+![Tests](https://img.shields.io/badge/tests-779-brightgreen)
 ![Architecture](https://img.shields.io/badge/architecture-modular-orange)
 ![Status](https://img.shields.io/badge/status-complete-success)
 
@@ -18,7 +18,7 @@ SignalScope AI is an evidence-first GEO intelligence platform that helps organis
 
 Instead of attempting to automatically optimise websites, SignalScope AI measures AI visibility, analyses evidence, generates explainable optimisation recommendations and measures improvement over time.
 
-**Version:** 2.4.0
+**Version:** 2.5.0
 
 </div>
 
@@ -35,6 +35,7 @@ Instead of attempting to automatically optimise websites, SignalScope AI measure
 - Creating a New Audit
 - Collecting Structured Evidence
 - Audit History and Comparison
+- Recurring Monitoring
 - Architecture Overview
 - Technology Stack
 - Repository Structure
@@ -181,7 +182,7 @@ Artificial Intelligence is reserved for tasks that genuinely benefit from reason
 
 - Modular architecture
 - Four independent processing engines
-- 677 automated tests
+- 779 automated tests
 - Deterministic analytics
 - Explainable AI workflow
 - Structured Markdown reporting
@@ -275,15 +276,15 @@ The dashboard is intentionally read-only. It does not modify audit data, execute
 
 The dashboard displays the default audit only. Its project metadata and file locations come from that audit's `audit_config.json`; there is no client selector yet.
 
-The dashboard shows the **current run only**. It has no snapshot selector, history browser or comparison view; audit history is managed from the command line (see [Audit History and Comparison](#audit-history-and-comparison)). After `audit_history.py new-run`, the dashboard may appear empty or show no current audit evidence until the structured batch collects the fresh run; this is expected, and the previous run remains preserved in its snapshot.
+The dashboard shows the **current run only**. It has no snapshot selector, history browser or comparison view; audit history is managed from the command line (see [Audit History and Comparison](#audit-history-and-comparison)). After `audit_history.py new-run`, the dashboard may appear empty or show no current audit evidence until the structured batch collects the fresh run; this is expected, and the previous run remains preserved in its snapshot. The dashboard has no schedule, monitoring-history or lock controls; recurring monitoring is driven from the command line by an external scheduler (see [Recurring Monitoring](#recurring-monitoring)).
 
 ## Project Scope
 
 The bundled demonstration engagement is **Boots UK**, in the Health & Beauty Retail category, within the United Kingdom market, benchmarked against Superdrug, Amazon and Holland & Barrett. It remains the default audit for every command and for the dashboard.
 
-Since v2.1, SignalScope AI provides a **multi-company audit foundation**: the Audit, Insights, Recommendation and Measurement Engines are no longer tied to one company and can run any audit that has its own configuration file. Since v2.2, an operator can create a new client audit workspace with one command (see [Creating a New Audit](#creating-a-new-audit)), and since v2.3 collect structured evidence for all of its questions with one resumable command (see [Collecting Structured Evidence](#collecting-structured-evidence)). Since v2.4, a completed run can be preserved as an immutable snapshot, a fresh run collected later, and two preserved runs compared (see [Audit History and Comparison](#audit-history-and-comparison)).
+Since v2.1, SignalScope AI provides a **multi-company audit foundation**: the Audit, Insights, Recommendation and Measurement Engines are no longer tied to one company and can run any audit that has its own configuration file. Since v2.2, an operator can create a new client audit workspace with one command (see [Creating a New Audit](#creating-a-new-audit)), and since v2.3 collect structured evidence for all of its questions with one resumable command (see [Collecting Structured Evidence](#collecting-structured-evidence)). Since v2.4, a completed run can be preserved as an immutable snapshot, a fresh run collected later, and two preserved runs compared (see [Audit History and Comparison](#audit-history-and-comparison)). Since v2.5, that lifecycle can recur unattended: an external scheduler runs one safe monitoring cycle at a time (see [Recurring Monitoring](#recurring-monitoring)).
 
-SignalScope AI remains an **operator-assisted audit system, not a SaaS product**. It has no scheduled monitoring, no persistent database, no authentication or user accounts, no billing, no client self-service, no client selector and no history view in the dashboard.
+SignalScope AI remains an **operator-assisted audit system, not a SaaS product**. It has no built-in scheduler (recurring monitoring is triggered externally), no persistent database, no authentication or user accounts, no billing, no client self-service, no client selector and no history view in the dashboard.
 
 ## Audit Configuration
 
@@ -621,6 +622,7 @@ It is a derived report, not part of either snapshot: re-running the same pair re
 - Run only **one write operation per audit at a time**: never run the structured batch, `snapshot` or `new-run` concurrently for the same audit. The commands re-check their inputs and stop rather than corrupt data, but concurrent use is not supported.
 - `list` and `compare` are read-only with respect to the audit, but avoid editing an audit's files while other commands for it are running.
 - `snapshot`, `list`, `new-run` and `compare` make no Gemini calls. Only the structured batch calls Gemini.
+- While a recurring monitoring cycle is working on an audit, do not run these write commands against it (see [Manual Commands Alongside Monitoring](#manual-commands-alongside-monitoring)).
 
 ## Upgrading from v2.3
 
@@ -630,7 +632,164 @@ The legacy `run_batch_audit.py` saves only answer snippets, leaves the structure
 
 ## Git and Confidentiality
 
-Client audit folders are ignored entirely. Within any audit (including the Boots demonstration audit), `raw_responses/` folders at any depth, `snapshots/` folders and `reports/<slug>/comparisons/` are ignored, so full raw answers, snapshots and comparisons are never committed. The Boots demonstration audit's top-level data and reports remain tracked.
+Client audit folders are ignored entirely. Within any audit (including the Boots demonstration audit), `raw_responses/` folders at any depth, `snapshots/` folders and `reports/<slug>/comparisons/` are ignored, so full raw answers, snapshots and comparisons are never committed. Since v2.5 the `.monitoring.lock` file is ignored for every audit as well. The Boots demonstration audit's top-level data and reports remain tracked.
+
+---
+
+# Recurring Monitoring
+
+Since v2.5, the v2.4 lifecycle (new run → collect → snapshot → compare) can repeat unattended. [src/run_monitoring_cycle.py](src/run_monitoring_cycle.py) runs **at most one monitoring cycle per invocation**, and an external scheduler decides when to invoke it. It reuses the existing structured batch, snapshot, new-run and comparison functions; it does not reimplement any of them.
+
+## Service Workflow
+
+```text
+Manual baseline (once):
+  create audit → review questions → collect baseline → snapshot baseline
+
+Recurring monitoring (every trigger):
+  external trigger → planner → per-audit lock → due check
+    → new-run when due → structured collection / resume
+    → complete snapshot → previous snapshot → new snapshot comparison
+    → completed; nothing more happens until the next interval is due
+```
+
+Each completed cycle leaves a new historical snapshot and one `GEO_PROGRESS.md` comparing it with the previous snapshot.
+
+| SignalScope owns | The external scheduler owns |
+|---|---|
+| State validation and evidence integrity | When the command is invoked |
+| Overlap protection (per-audit lock) | The local clock and calendar |
+| Collection orchestration and spend protection | Machine uptime and missed-run behaviour |
+| Snapshot and comparison safety | The environment and credentials of the scheduled user |
+| A machine-readable outcome (exit code and JSON summary) | |
+
+## The Command
+
+```bash
+python src/run_monitoring_cycle.py --audit <slug> --interval-days 30
+python src/run_monitoring_cycle.py --audit <slug> --interval-days 30 --dry-run
+```
+
+- `--interval-days` is required and must be a positive whole number.
+- A new cycle is **due** when the time since the latest snapshot's run ID (its UTC creation time) is at least `--interval-days` days. This is a plain UTC duration; there is no calendar or time-zone logic.
+- One invocation performs at most one cycle. There is no internal scheduler, daemon or background service.
+
+**Dry run.** `--dry-run` inspects the current run and its snapshots and reports: the current-run state, evidence integrity, the latest and previous snapshots, whether a cycle is due, the methodology check, whether collection would be needed and — only then — whether a Gemini API key is configured, whether another process holds the monitoring lock, the planned actions and the exit code a real run would start with. It makes no Gemini call, writes no file, does not create the lock file and does not change the audit. It checks only that a key is *present*; it never validates the key with Gemini.
+
+## Before Enabling Monitoring: the Manual Baseline
+
+> **Recurring monitoring does not create the first baseline.** Before scheduling an audit, the operator must create the audit, review its question library, collect the baseline with the structured batch and snapshot it (see [Audit History and Comparison](#audit-history-and-comparison)).
+
+Without a valid snapshot the command exits with *operator action required* and makes no Gemini call. The baseline is the reference for every later comparison, so its questions and results are reviewed and accepted by a person.
+
+## What One Invocation Does
+
+The command takes the audit's lock, plans from the files themselves (there is no cycle-state file), and takes the one safe next action:
+
+| Situation | Action |
+|---|---|
+| Evidence integrity problem, no baseline, or invalid latest snapshot | Stop: operator action (no Gemini call) |
+| Latest snapshot younger than `--interval-days`, comparison present | Nothing: *not due* |
+| Due (latest snapshot is the current run) | new-run → collect → snapshot → compare |
+| Fresh or in-progress current run | Collect / resume → snapshot → compare |
+| Interrupted new-run | Finish it (v2.4 recovery) → collect → snapshot → compare |
+| Complete run not yet snapshotted | Snapshot → compare (no Gemini call) |
+| Snapshot present, its comparison missing | Compare only (no Gemini call) |
+
+**Collection.** Collection uses the released structured batch (`run_structured_batch_audit`), called with absolute paths in chunks of **5** questions. Completed questions are skipped; a question whose answer is stored but not yet analysed is analysed from the stored answer without a new answer call. An interrupted or incomplete run is resumed by the next invocation.
+
+**Spend circuit breaker.** After each chunk SignalScope checks whether the run made progress (more questions structurally complete, or fewer not yet started). If a chunk records failures and makes no progress, the cycle stops instead of working through the rest of the question library. There is no whole-cycle retry and no additional retry schedule; the batch's own per-question retries (temporary 429/5xx errors) remain authoritative. If a chunk makes no progress and all of its failures are temporary API errors, the cycle ends as *incomplete* (exit 4) and a later trigger resumes it; any other failure, such as an authentication error, needs the operator (exit 1).
+
+**Known limitation.** Because the batch always starts from the earliest collectable questions, a question that keeps failing is attempted again in later chunks of the same cycle while other questions continue to progress. Spend stays bounded by the chunking and the batch's retry limits, completed questions are never repeated and evidence integrity is not affected; changing this would require redesigning the collector. This is accepted for v2.5.
+
+**Partial runs.** Automation never snapshots a partial run. If collectable questions remain, the cycle exits 4 and the next trigger resumes them. If nothing more can be collected automatically (for example a legacy incomplete row), it exits 1 and the operator decides whether to preserve the run with `python src/audit_history.py snapshot --audit <slug> --allow-partial`; the next invocation then compares that snapshot using the v2.4 shared-question and coverage rules.
+
+**Snapshots.** A snapshot is created automatically only when every question is structurally complete, using the v2.4 `create_snapshot` with `allow_partial=False`. All v2.4 snapshot gates, hashes and duplicate protection apply unchanged.
+
+**Comparisons.** Each completed cycle compares the **immediately previous snapshot → the new snapshot** with the v2.4 comparison, writing `reports/<slug>/comparisons/<previous>__<new>/GEO_PROGRESS.md`. There is one automatic comparison per cycle, always in that direction; the first baseline is not automatically compared with every later run. An existing comparison is not regenerated. Other comparisons can still be made manually with `audit_history.py compare`.
+
+**Methodology guard.** Before any collection, the current `audit_config.json` and `buyer_questions.csv` are checked against the latest snapshot with the same comparability rules as the v2.4 comparison. An incompatible change stops the cycle before any Gemini call; display-only changes that v2.4 allows are allowed.
+
+**Re-baselining.** If the operator deliberately snapshots a run under changed core methodology, that newer snapshot becomes the new monitoring baseline and nothing is compared across the break. For example, with A (old methodology), B (a manual re-baseline under the new methodology) and C (the next recurring run), the automatic comparison is B → C only — never A → B or A → C, and there is no fallback to an older compatible snapshot. The cadence is measured from B.
+
+**Comparison failures.** If a comparison is refused (for example zero shared structurally complete questions) or cannot be written after a new snapshot was published, the snapshot is kept — nothing is rolled back — and the cycle exits 1. The next invocation retries the comparison only; it never starts a new collection because a comparison failed. The snapshot is preserved evidence; the comparison is derived output.
+
+**API key.** A Gemini key is checked only when collection is actually needed, and for a due cycle it is checked *before* new-run changes the current run. No key is needed to decide that a cycle is not due, to inspect history, to snapshot an already complete run, or to create a comparison. Key presence does not prove the key is valid.
+
+**Recommendations.** Recurring monitoring does not run the Recommendation Engine: recommendations add LLM calls and variability, while the monitoring core is evidence and measurement. The manual recommendation workflow is unchanged.
+
+## Crash and Resume
+
+Every step is re-derived from the files on the next invocation, so no cycle-state file is needed:
+
+| Interrupted after | Next invocation |
+|---|---|
+| new-run, before collection | Sees a fresh run and collects it |
+| 17 of 40 questions | Collects only the remaining questions |
+| An answer was stored but not analysed | Analyses the stored answer (no new answer call) |
+| Complete collection, before the snapshot | Snapshots it without collecting again |
+| The snapshot, before the comparison | Compares only: no Gemini call, no new-run, no duplicate snapshot |
+
+## Exit Codes and Summary
+
+| Code | Meaning |
+|---|---|
+| 0 | Success or nothing to do: not due, a comparison-only recovery, or a completed cycle |
+| 1 | Operator action required or operational failure: no baseline, an evidence integrity problem, an invalid or tampered snapshot, an incompatible methodology change, no API key when collection is needed, a permanent collection failure, a comparison refusal or write failure, a partial run with nothing left to collect, or a lock that cannot be provided |
+| 2 | Invalid command-line arguments |
+| 3 | Another monitoring process holds this audit's lock; nothing was done |
+| 4 | Collection is incomplete but recoverable; a later trigger resumes it |
+
+The last line of output is a single JSON object for scheduler wrappers and future automation, with `audit_slug`, `mode`, `outcome`, `action`, `active_state`, `final_state`, `latest_snapshot`, `new_snapshot`, `comparison`, `requires_collection` and `exit_code` (a dry run's summary has `due`, `previous_snapshot` and `lock_held` instead of `final_state`, `new_snapshot` and `comparison`). It never contains the API key, answers or evidence.
+
+## Per-Audit Lock
+
+A cycle holds an operating-system lock on `audits/<slug>/.monitoring.lock` from planning to the end of the comparison (Windows: `msvcrt.locking`; Linux/macOS: `fcntl.flock`). The lock is per audit and non-blocking: if another monitoring process holds the same audit's lock, the command exits 3 and does nothing. Different audits can be monitored at the same time.
+
+- The **lock file may remain** after a cycle; its existence does **not** mean the audit is locked. Only the operating system's lock on an open handle counts, and the operating system releases it when the process ends, including after a crash.
+- The file holds diagnostic details only (`audit_slug`, `started_at`, `process_id`, `hostname`, `signalscope_version`). SignalScope never reads them to decide anything: it does not judge staleness by age or process ID, does not delete old lock files, and has no unlock command.
+- The lock is designed for **local filesystems**. v2.5 provides no distributed locking, multi-host coordination, network-filesystem leases or cloud-worker coordination.
+
+## Scheduling
+
+v2.5 deliberately has no internal scheduler. SignalScope provides the safe one-cycle command; the deployment decides when to run it. Trigger it **daily** with `--interval-days 30`: each day the scheduler asks whether the audit is due, most invocations exit 0 as *not due* without any Gemini call, and a full audit runs only about once every 30 days. A daily trigger does not mean daily audits.
+
+**Windows Task Scheduler** (recommended on the current operator platform):
+
+- Trigger: daily.
+- Action: program = the project's Python (for example `C:\path\to\SignalScope-AI\.venv\Scripts\python.exe`), arguments = `src\run_monitoring_cycle.py --audit <slug> --interval-days 30`, **Start in** = the repository root.
+- Settings: *If the task is already running* → **Do not start a new instance**; enable **Run task as soon as possible after a scheduled start is missed** if the machine may be off at the trigger time.
+- Run it as a user who can read the project and its `.env` (the Gemini key is read from the repository's `.env` or the environment).
+- To keep a record, run it through `cmd /c "... >> monitoring.log 2>&1"`; `*.log` files are git-ignored.
+
+**cron** (Linux/macOS equivalent):
+
+```cron
+0 6 * * * cd /path/to/SignalScope-AI && .venv/bin/python src/run_monitoring_cycle.py --audit <slug> --interval-days 30 >> monitoring.log 2>&1
+```
+
+cron owns the invocation time; SignalScope still owns the due check and the lock.
+
+**Missed runs.** If the machine is off when an audit becomes due, the next invocation simply runs one due cycle. SignalScope never calculates or launches catch-up audits: an audit that became due on Monday while the machine was off until Wednesday gets one cycle on Wednesday — not Monday, Tuesday and Wednesday.
+
+Make.com and cloud triggers are not part of v2.5; they remain future deployment and platform work.
+
+## Manual Commands Alongside Monitoring
+
+All manual commands remain available and unchanged: `run_structured_batch_audit.py`, `audit_history.py snapshot`, `list`, `new-run` and `compare`. They do **not** take the monitoring lock, so do not run mutating manual commands against an audit while `run_monitoring_cycle.py` is working on it. The existing integrity checks still protect stored data, but simultaneous manual work may waste Gemini calls or make one of the operations refuse.
+
+To intervene manually:
+
+1. Pause the scheduled task.
+2. Inspect with `python src/audit_history.py list --audit <slug>` and/or `python src/run_monitoring_cycle.py --audit <slug> --interval-days 30 --dry-run`.
+3. Resolve the issue with the manual commands (for example `snapshot --allow-partial`, or a new baseline).
+4. Resume the scheduled task; the next invocation continues from the files.
+
+## Monitoring Output
+
+Recurring monitoring produces no new report type. Each cycle's output is the historical snapshot (`snapshot_manifest.json`, `audit_config.json`, `buyer_questions.csv`, `audit_results.csv`, `raw_responses/`, `reports/audit_report.md`, `reports/GEO_FINDINGS.md`) and the derived `reports/<slug>/comparisons/<previous>__<new>/GEO_PROGRESS.md`. The dashboard remains current-run only, with no schedule, monitoring-history, comparison or lock controls.
+
+The `.monitoring.lock` file is git-ignored for every audit, including the Boots demonstration audit, and is operational state only — never audit evidence. Client audits, raw responses, snapshots and comparisons keep the v2.4 confidentiality rules.
 
 ---
 
@@ -729,6 +888,7 @@ SignalScope-AI/
 │   ├── measurement_engine.py        # Measurement Engine: GEO_PROGRESS.md
 │   ├── audit_history.py             # Audit history: snapshot, list, new-run, compare (operator CLI)
 │   ├── version.py                   # SignalScope version recorded in snapshot manifests
+│   ├── run_monitoring_cycle.py      # One recurring monitoring cycle (for an external scheduler)
 │   ├── run_end_to_end_demo.py       # Full pipeline, single question
 │   ├── check_gemini_connection.py   # Standalone Gemini connectivity check
 │   └── dashboard_data.py            # Non-UI data layer for the Streamlit dashboard
@@ -741,7 +901,8 @@ SignalScope-AI/
 │       ├── buyer_questions.csv      # Placeholder-substituted question set
 │       ├── audit_results.csv        # Structured audit evidence (11-column schema)
 │       ├── raw_responses/           # Full Gemini answers from v2.3 runs (git-ignored)
-│       └── snapshots/<run-id>/      # Immutable preserved runs, when created (git-ignored)
+│       ├── snapshots/<run-id>/      # Immutable preserved runs, when created (git-ignored)
+│       └── .monitoring.lock         # Monitoring lock file, once monitoring has run (git-ignored)
 │
 ├── reports/
 │   └── boots-uk-health-beauty/
@@ -848,7 +1009,7 @@ This design decision keeps the platform focused on intelligence rather than auto
 
 After improvements have been implemented, a second audit can be performed.
 
-The Measurement Engine compares the previous and current audits to identify genuine changes. Since v2.4, the earlier and later audits are two immutable snapshots of the same audit, compared with `audit_history.py compare` (see [Audit History and Comparison](#audit-history-and-comparison)).
+The Measurement Engine compares the previous and current audits to identify genuine changes. Since v2.4, the earlier and later audits are two immutable snapshots of the same audit, compared with `audit_history.py compare` (see [Audit History and Comparison](#audit-history-and-comparison)). Since v2.5 this comparison is produced automatically at the end of each recurring monitoring cycle (see [Recurring Monitoring](#recurring-monitoring)).
 
 Rather than assuming improvements occurred, every reported change must be supported by measurable evidence.
 
@@ -1391,7 +1552,7 @@ Rather than relying solely on manual testing, SignalScope AI includes an extensi
 
 ## Test Coverage
 
-The project contains **677 automated tests**, including:
+The project contains **779 automated tests**, including:
 
 - unit tests
 - integration tests
@@ -1414,6 +1575,8 @@ v2.2 added audit-creation tests: generating the Boots workspace from its configu
 v2.3 added structured batch tests: a full 40-question run for a fictional client with Gemini faked, complete raw evidence, resuming (including from a saved answer without a second answer call), `--limit` and `--delay`, failure and stop behaviour, interruption, protection of the historical Boots rows (run against a copy), and the create → collect → report chain, including the complete-versus-partial report wording. No test calls the Gemini API.
 
 v2.4 added audit history tests: complete and partial snapshots, SHA-256 tamper detection, verification of recorded requested models against the preserved evidence, failure rollback, the safe new-run reset and recovery from every interruption point, a multi-run lifecycle, and run comparisons (the shared-question rule, unequal and partial coverage, every comparability refusal, direction, model and version warnings). All of them use fictional audits in temporary folders with Gemini faked; the Boots golden reports are unchanged.
+
+v2.5 added recurring monitoring tests: the planner and every start state, the due calculation, the methodology and API-key ordering guards, the per-audit lock (including a killed process releasing it), the read-only dry run, chunked collection and the spend circuit breaker, resume, complete-only snapshots, the partial-run policy, previous → new comparisons, re-baselining, recovery after a crash at each step, a multi-cycle history and the duplicate-trigger guard. Mutation checks confirmed the tests catch each deliberately broken safeguard. No test calls the Gemini API.
 
 ---
 
@@ -1624,15 +1787,16 @@ Current limitations include:
 - no persistent database
 - no web interface
 - no authentication
-- no scheduled monitoring
+- no built-in scheduler: recurring monitoring is triggered by an external scheduler (Task Scheduler or cron)
 - no history view in the dashboard; comparisons cover exactly two snapshots at a time
+- the monitoring lock is for local filesystems only; a persistently failing question may be re-attempted in later chunks of the same cycle (see [Recurring Monitoring](#recurring-monitoring))
 - new audits require exactly three competitors and use the single master question template
 
 Operational rules:
 
 - **Run commands from the repository root.** `create_audit.py` always writes to the project's own `audits/` folder, but the `--audit` runners resolve audit and report paths relative to the current working directory.
 - **Run one structured batch per audit at a time.** The runner detects another process writing to the same audit and stops rather than risk duplicate or corrupted results.
-- **Run one write operation per audit at a time.** Do not run the structured batch, `snapshot` or `new-run` concurrently for the same audit (see [Operator Safety](#operator-safety)).
+- **Run one write operation per audit at a time.** Do not run the structured batch, `snapshot` or `new-run` concurrently for the same audit, or while a monitoring cycle is working on it (see [Operator Safety](#operator-safety)).
 - **Raw evidence needs hard-link support.** Evidence files are published with a filesystem hard link so an existing file can never be replaced. On a filesystem without hard links the run stops rather than fall back to overwriting.
 - **Leftover temporary files.** Failed or interrupted (Ctrl-C) runs clean up after themselves. Only a hard process kill can leave an `audits/.creating-<slug>-*` staging folder (from `create_audit.py`) or a dot-prefixed `.tmp` file in a `raw_responses/` folder (from the structured batch). Neither is used as evidence, and both can be deleted manually. A hard kill during `snapshot` can likewise leave a `snapshots/.creating-*` staging folder, which is never listed or used as a snapshot. A `snapshots/.retired-raw-*` folder is different: it belongs to an unfinished `new-run` and must not be deleted by hand; run `new-run` again to finish it.
 - **Historical rows are not backfilled.** Legacy incomplete Gemini rows are not reprocessed, and older complete rows are not regenerated to create raw evidence (see [Existing Results](#existing-results)).
@@ -1650,10 +1814,10 @@ These limitations were accepted in favour of demonstrating software architecture
 | v2.1 | Multi-company configuration foundation | Released |
 | v2.2 | Repeatable client audit creation | Released |
 | v2.3 | Structured batch evidence collection | Released |
-| v2.4 | Audit snapshots and longitudinal history | Current release (ready for release) |
-| v2.5 | Recurring monitoring workflow | Planned |
+| v2.4 | Audit snapshots and longitudinal history | Released |
+| v2.5 | Recurring monitoring workflow | Current release (ready for release) |
 
-Later platform work (database, scheduling, a multi-project interface, authentication and cloud deployment, with billing and client self-service only when justified) is not yet scheduled.
+Later platform work (database, cloud scheduling, a multi-project interface, authentication and cloud deployment, with billing and client self-service only when justified) is not yet scheduled.
 
 Potential future enhancements include:
 
@@ -1662,7 +1826,7 @@ Potential future enhancements include:
 - Interactive web dashboard
 - Multi-project management
 - Historical trend visualisation
-- Scheduled GEO monitoring
+- Cloud-scheduled GEO monitoring and notifications
 - Team collaboration
 - API integrations
 - Cloud deployment
@@ -1764,7 +1928,7 @@ See the accompanying `LICENSE` file for full details.
 
 <div align="center">
 
-**SignalScope AI v2.4.0**
+**SignalScope AI v2.5.0**
 
 *Evidence-Driven Generative Engine Optimisation Intelligence Platform*
 

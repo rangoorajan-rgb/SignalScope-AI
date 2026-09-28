@@ -1,24 +1,101 @@
 # Current Sprint
 
-## v2.4 — Audit Snapshots and Longitudinal History
+## v2.5 — Recurring Monitoring Workflow
 
 **Status:** Complete — ready for commit and release (not yet released)
 
-### Baseline: v2.3.0 (released)
+### Baseline: v2.4.0 (released)
+
+v2.4.0 added immutable snapshots, a safe new-run and two-run comparison, with 677
+tests. Recurring measurement still needed an operator to remember and sequence every
+step by hand: new-run, collection, snapshot and comparison.
+
+### Objective
+
+Automate the proven v2.4 lifecycle as a safe, repeatable monitoring cycle that an
+external scheduler can trigger unattended, without changing the evidence, snapshot or
+comparison rules, the results schema or the Boots demonstration audit and reports.
+
+### Delivered
+
+- **Checkpoint A — planner, lock and dry run (734 tests).** `src/run_monitoring_cycle.py`:
+  a read-only planner deriving the one safe next action from the current run and its
+  snapshots (evidence problems first, a required manual baseline, no fallback from an
+  invalid latest snapshot, the v2.4 comparability rules applied before collection, a
+  key-presence check only when collection is needed), the `--interval-days` due
+  check, a per-audit OS lock, and `--dry-run`. `.gitignore` ignores the lock file.
+- **Checkpoint B — collection and complete snapshots (766 tests).** One-cycle
+  execution under the lock: re-planning while holding it and again after new-run,
+  interrupted-reset recovery, collection with the released structured batch in chunks
+  of 5 with a spend circuit breaker, resume, complete-only snapshots
+  (`allow_partial=False`) and exit codes 0/1/3/4.
+- **Checkpoint C — comparison and the full lifecycle (779 tests).** Automatic previous
+  → new comparison with the v2.4 `compare_snapshots`, comparison-only recovery,
+  comparison refusals as operator action without rolling back snapshots, re-baseline
+  boundaries, multi-cycle history and the end-to-end duplicate-trigger guard.
+- **Checkpoint D — release polish.** Documentation of the monitoring workflow,
+  scheduling, the lock, the policies and limitations; version 2.5.0.
+- **Test protection.** 779 tests pass: the 677 from v2.4 (one dashboard version
+  assertion updated to 2.5.0) plus 102 monitoring tests. Mutation checks confirmed the
+  tests catch each deliberately broken safeguard. No test calls Gemini.
+
+### Key design decisions
+
+- **External scheduler, one-cycle command.** SignalScope owns state, integrity, overlap
+  protection and outcomes; Windows Task Scheduler or cron owns timing, uptime and
+  credentials. No internal scheduler or daemon.
+- **Manual baseline.** Monitoring never creates the first baseline.
+- **Per-audit OS lock.** The kernel releases it if the process dies, so there is no
+  stale-lock handling; the metadata is diagnostic only.
+- **Interval cadence.** `--interval-days`, measured in UTC from the latest snapshot;
+  a daily trigger runs a full cycle only when due, and never runs catch-up cycles.
+- **Complete-only automatic snapshots; manual partial acceptance.**
+- **Previous → new comparison**, one per cycle, never across a re-baseline.
+- **Recommendations deferred** from automation.
+- **Derived state only:** no cycle-state file, cycle ID or monitoring log.
+
+### Known limitations
+
+- The monitoring lock is for local filesystems only.
+- A persistently failing question may be re-attempted in later chunks of the same
+  cycle (the batch always starts from the earliest collectable question).
+- Manual write commands do not take the monitoring lock; operators must not run them
+  against an audit while a cycle is working on it.
+- The dashboard remains current-run only, with no monitoring controls.
+
+### Deferred
+
+- Later platform work: database, cloud scheduling and notifications, a multi-project
+  interface, authentication, cloud deployment; billing and client self-service only
+  when justified.
+- Not planned for a specific version yet: automatic recommendations, trend analysis
+  across more than two runs, additional comparison metrics, a dashboard history view,
+  distributed locking.
+
+---
+
+## Previous release records
+
+### v2.4 — Audit Snapshots and Longitudinal History
+
+
+**Status:** Released as v2.4.0. Recorded as written at release.
+
+#### Baseline: v2.3.0 (released)
 
 v2.3.0 made structured evidence collection repeatable (`src/run_structured_batch_audit.py`),
 with full raw evidence for every new Gemini answer and 568 tests. But an audit had only
 one current run: collecting again meant overwriting it, and there was no safe way to
 preserve a run or measure change between two runs.
 
-### Objective
+#### Objective
 
 Preserve completed runs as immutable, verifiable history, allow a fresh run to be
 collected safely, and compare two preserved runs with the existing Measurement Engine,
 without changing the results file format, the structured batch, any existing metric or
 the Boots demonstration audit and reports.
 
-### Delivered
+#### Delivered
 
 - **Checkpoint A — snapshots and listing (612 tests).** `src/audit_history.py`
   `snapshot` and `list`: byte-for-byte copies of the run's config, questions, results
@@ -49,7 +126,7 @@ the Boots demonstration audit and reports.
   assertion updated to 2.4.0) plus 109 audit history tests. The Boots golden reports,
   including `GEO_PROGRESS.md`, are unchanged. No test calls Gemini.
 
-### Key design decisions
+#### Key design decisions
 
 - **Snapshot copies plus a controlled reset.** History is a set of self-contained,
   immutable run folders; the current run stays at the top level, so the existing
@@ -66,7 +143,7 @@ the Boots demonstration audit and reports.
 - **Detection, not prevention.** SHA-256 hashes detect tampering; `requested_models`
   is verified against the evidence; `signalscope_version` is recorded metadata only.
 
-### Known limitations
+#### Known limitations
 
 - Comparisons cover exactly two snapshots at a time; there is no multi-run trend view.
 - In a comparison, GEO Maturity is evaluated over the shared question set only.
@@ -75,7 +152,7 @@ the Boots demonstration audit and reports.
   against an audit at a time.
 - Snapshots are never deleted, repaired or pruned by SignalScope.
 
-### Deferred
+#### Deferred
 
 - v2.5: recurring monitoring workflow.
 - Later platform work: database, scheduling, multi-project interface, authentication,
@@ -86,8 +163,6 @@ the Boots demonstration audit and reports.
   the served model version.
 
 ---
-
-## Previous release records
 
 ### v2.3 — Structured Batch Evidence Collection
 

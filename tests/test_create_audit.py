@@ -902,12 +902,12 @@ BOOTS_SLUG = "boots-uk-health-beauty"
 
 
 class ReleaseGovernanceTests(unittest.TestCase):
-    def test_streamlit_displays_version_2_4_0(self) -> None:
+    def test_streamlit_displays_version_2_5_0(self) -> None:
         from version import SIGNALSCOPE_VERSION
 
         source = (REPO_ROOT / "streamlit_app.py").read_text(encoding="utf-8")
-        self.assertEqual(re.findall(r"\*\*Version:\*\* (\d+\.\d+\.\d+)", source), ["2.4.0"])
-        self.assertEqual(SIGNALSCOPE_VERSION, "2.4.0")  # dashboard and snapshot manifests agree
+        self.assertEqual(re.findall(r"\*\*Version:\*\* (\d+\.\d+\.\d+)", source), ["2.5.0"])
+        self.assertEqual(SIGNALSCOPE_VERSION, "2.5.0")  # dashboard and snapshot manifests agree
 
     def test_gitignore_contains_client_data_rules_and_boots_whitelist(self) -> None:
         lines = [line.strip() for line in GITIGNORE.read_text(encoding="utf-8").splitlines()]
