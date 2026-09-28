@@ -88,6 +88,25 @@ class Progress:
     generated_at: date
 
 
+@dataclass(frozen=True)
+class RunComparisonContext:
+    """Optional context for a comparison of two recorded audit runs
+    (audit_history.py compare). When given to render_markdown, the report
+    names both runs, states each run's own coverage and the number of
+    shared structurally complete questions the metrics were computed on,
+    and shows any provenance warnings. Nothing here changes a metric."""
+
+    from_run: str
+    to_run: str
+    from_complete: int
+    from_total: int
+    to_complete: int
+    to_total: int
+    shared_question_count: int
+    requested_model_warning: str | None = None
+    version_warning: str | None = None
+
+
 def _direction_higher_is_better(before: float, after: float) -> str:
     if after > before:
         return IMPROVED
@@ -348,18 +367,53 @@ def compare_audits(
     )
 
 
+def _coverage(complete: int, total: int) -> str:
+    percent = f" ({complete / total * 100:.1f}%)" if total else ""
+    return f"{complete} / {total} structurally complete Gemini questions{percent}"
+
+
+def _render_run_context(context: RunComparisonContext) -> list[str]:
+    lines = ["## Run Comparison", ""]
+    lines.append(f"- From run (earlier): {context.from_run}")
+    lines.append(f"- To run (later): {context.to_run}")
+    lines.append(f"- From coverage: {_coverage(context.from_complete, context.from_total)}")
+    lines.append(f"- To coverage: {_coverage(context.to_complete, context.to_total)}")
+    lines.append(f"- Shared complete questions used: {context.shared_question_count}")
+    lines.append("")
+    if (context.from_complete, context.from_total) != (context.to_complete, context.to_total):
+        lines.append(
+            "> **Unequal coverage.** The two runs have different numbers of structurally complete "
+            "questions. Every metric below is computed only on the questions structurally complete "
+            "in both runs, so neither run's missing questions affect either side."
+        )
+        lines.append("")
+    warnings = [w for w in (context.requested_model_warning, context.version_warning) if w]
+    for warning in warnings:
+        lines.append(f"> **Warning:** {warning}")
+        lines.append("")
+    return lines
+
+
 def render_markdown(
-    progress: Progress, is_validation_run: bool = False, *, audit_config: AuditConfig | None = None
+    progress: Progress,
+    is_validation_run: bool = False,
+    *,
+    audit_config: AuditConfig | None = None,
+    run_context: RunComparisonContext | None = None,
 ) -> str:
     """Render the Markdown GEO progress report purely from an already-
     computed Progress object - the structured comparison is the source of
     truth, not this text. audit_config (default: the default audit)
     supplies only the report title; brand/market/category come from
-    progress."""
+    progress. run_context (optional) adds the two-run comparison block;
+    without it the output is exactly the long-standing report."""
     audit_config = audit_config or _DEFAULT_AUDIT_CONFIG
     lines: list[str] = []
     lines.append(f"# SignalScope AI GEO Progress Report — {audit_config.report_subject}")
     lines.append("")
+
+    if run_context is not None:
+        lines.extend(_render_run_context(run_context))
 
     if is_validation_run:
         lines.append(
@@ -377,12 +431,17 @@ def render_markdown(
     lines.append(f"- Brand: {progress.brand}")
     lines.append(f"- Market: {progress.market}")
     lines.append(f"- Category: {progress.category}")
+    before_label, after_label = (
+        ("From run (shared questions)", "To run (shared questions)")
+        if run_context is not None
+        else ("Baseline audit", "Follow-up audit")
+    )
     lines.append(
-        f"- Baseline audit: {progress.baseline_row_count} row(s), "
+        f"- {before_label}: {progress.baseline_row_count} row(s), "
         f"{progress.baseline_unique_questions} unique question(s)"
     )
     lines.append(
-        f"- Follow-up audit: {progress.followup_row_count} row(s), "
+        f"- {after_label}: {progress.followup_row_count} row(s), "
         f"{progress.followup_unique_questions} unique question(s)"
     )
     lines.append(f"- Report generation date: {progress.generated_at.isoformat()}")
@@ -449,6 +508,12 @@ def render_markdown(
         "- Competitor Mention Change is reported for information only; no "
         "improvement or decline judgement is applied to it."
     )
+    if run_context is not None:
+        lines.append(
+            f"- Only Gemini results are compared, and only for the {run_context.shared_question_count} "
+            "question(s) structurally complete in both runs; Before is the from run and After is the to run. "
+            "Each run's own coverage is shown under Run Comparison."
+        )
     if is_validation_run:
         lines.append(
             "- This report is a structural validation run (baseline and follow-up "

@@ -1,9 +1,13 @@
 # Methodology
 
-This document describes the intended methodology for SignalScope AI, an AI-assisted
-consulting workflow, not an autonomous agent. It is a design specification, not a
-record of implemented functionality — nothing described here has been built yet (see
-[CURRENT_SPRINT.md](../CURRENT_SPRINT.md)).
+This document describes the methodology for SignalScope AI, an AI-assisted consulting
+workflow, not an autonomous agent. Parts of it are implemented: collecting current
+audit evidence, structured Gemini analysis of each saved answer, immutable audit
+snapshots and history, the new-run lifecycle, and deterministic comparison of two
+preserved runs (see the "As implemented" notes and
+[Longitudinal Measurement](#longitudinal-measurement)). Other parts remain design
+intent — recurring scheduling and automatic monitoring are not yet implemented, nor
+are later platform capabilities (see [CURRENT_SPRINT.md](../CURRENT_SPRINT.md)).
 
 ## Independent Query Methodology
 
@@ -109,3 +113,35 @@ Consequences for the methodology:
 - Reports and recommendations should describe findings as reflective of the evidence
   collected at a specific point in time, rather than as permanent, fixed facts about a
   brand's AI visibility.
+
+## Longitudinal Measurement
+
+As implemented in v2.4 (`src/audit_history.py`), change over time is measured between
+preserved runs of the same audit:
+
+```text
+collect → snapshot → new-run → collect → snapshot → compare
+```
+
+- **Immutable historical copies.** Each snapshot keeps its own copy of the audit
+  configuration, question set, structured results and raw evidence, verified by
+  SHA-256 hashes, so every historical run can be interpreted with the methodology it
+  actually used.
+- **Comparability.** Two snapshots are compared only when they share the same audit,
+  brand, market, category, ordered competitor list and ordered question methodology
+  (question ID, buyer journey stage and question text). Otherwise the comparison is
+  refused; changed question sets are not normalised or partially compared.
+- **Shared-complete Gemini intersection.** Metrics use only Gemini questions that are
+  structurally complete in both runs, and the same question IDs on both sides;
+  manually entered and incomplete rows are excluded. This prevents missing evidence in
+  one run from appearing as a change in visibility.
+- **Coverage disclosure.** Each run's own coverage (structurally complete questions of
+  all questions) and the number of shared questions used are always reported.
+- **Warnings, not conclusions.** If the runs record different requested models or
+  SignalScope versions, the comparison runs with a neutral warning. A warning does not
+  imply that the difference caused any change in the metrics.
+- **GEO Maturity caveat.** In a comparison, GEO Maturity is evaluated over the shared
+  question set only, so it reflects brand visibility on those questions. When either
+  run is partial, it is not that run's maturity over its full question library.
+- **Model variability still applies.** A difference between two runs is a measured
+  difference between two recorded datasets, not proof of what caused it.

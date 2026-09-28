@@ -2,6 +2,10 @@
 
 Contains the application source code implementing the SignalScope AI workflow.
 
+The primary v2.4 operator workflow uses three commands: `create_audit.py` (create an
+audit workspace), `run_structured_batch_audit.py` (collect evidence; the only one of
+the three that calls Gemini) and `audit_history.py` (preserve, reset and compare runs).
+
 ## audit_config.py
 
 Loads and validates one audit's `audits/<slug>/audit_config.json` into a frozen
@@ -72,10 +76,45 @@ the "Collecting Structured Evidence" section of the [README](../README.md).
 
 `run_batch_audit.py` is the legacy answers-only batch runner, kept unchanged for
 backwards compatibility: it stores only a 500-character snippet with blank structured
-fields and should not be used for new evidence collection.
+fields and no raw evidence, and should not be used for new evidence collection or for
+runs intended for history.
 
 Corresponding tests are in
 [tests/test_run_structured_batch_audit.py](../tests/test_run_structured_batch_audit.py).
+
+## audit_history.py
+
+Audit run history (v2.4). It never calls Gemini. Run it from the repository root:
+
+```
+python src/audit_history.py snapshot --audit <slug> [--allow-partial]
+python src/audit_history.py list --audit <slug>
+python src/audit_history.py new-run --audit <slug>
+python src/audit_history.py compare --audit <slug> --from-run <run-id> --to-run <run-id>
+```
+
+- `snapshot` preserves the current run as an immutable
+  `audits/<slug>/snapshots/<run-id>/` folder (run ID `YYYYMMDDTHHMMSSZ`, UTC): copies
+  of the config, questions, results and raw evidence, audit and findings reports
+  rendered from those copies, and `snapshot_manifest.json` with a SHA-256 hash of every
+  file. A partial run needs `--allow-partial`; evidence problems always block.
+- `list` shows every snapshot with its integrity result and the current run's derived
+  state (read-only).
+- `new-run` resets `audit_results.csv` to its header and removes the current
+  `raw_responses/`, only when the latest valid snapshot preserves the current run
+  exactly; running it again finishes an interrupted reset.
+- `compare` measures change between two valid snapshots with the same core
+  configuration and question methodology, on the Gemini questions structurally
+  complete in both, using `measurement_engine.compare_audits`, and writes
+  `reports/<slug>/comparisons/<from-run>__<to-run>/GEO_PROGRESS.md`.
+
+Snapshot validation checks every hash, recomputes the coverage counts and the
+requested models from the snapshot's own files, and treats `signalscope_version`
+(from `version.py`) as recorded metadata. Operational errors exit with status 1. See
+the "Audit History and Comparison" section of the [README](../README.md).
+
+Corresponding tests are in
+[tests/test_audit_history.py](../tests/test_audit_history.py).
 
 ## audit_runner.py
 
