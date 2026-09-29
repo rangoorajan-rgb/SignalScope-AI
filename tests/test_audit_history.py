@@ -12,6 +12,7 @@ every test, and no snapshots/ folder may appear under the real audits/.
 from __future__ import annotations
 
 import csv
+import dataclasses
 import hashlib
 import io
 import json
@@ -58,6 +59,7 @@ from audit_history import (  # noqa: E402
     start_new_run,
 )
 from audit_history import NotComparableError, compare_snapshots  # noqa: E402
+from audit_history import SnapshotComparison, compute_snapshot_comparison  # noqa: E402
 from report_generator import compute_brand_visibility  # noqa: E402
 from run_structured_batch_audit import (  # noqa: E402
     STATE_NOT_STARTED,
@@ -1651,6 +1653,161 @@ class ModelProvenanceTests(_CompareTestCase):
         manifest["signalscope_version"] = "2.4.9"
         path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
         self.assertTrue(inspect_snapshot(snapshot.path, slug=SLUG).is_valid)  # format-checked only, as before
+
+
+# ==========================================================================
+# v2.6 - read-only comparison computation
+# ==========================================================================
+
+
+def _assert_same_refusal(test, from_run, to_run) -> None:
+    """compute_snapshot_comparison and compare_snapshots refuse with the
+    same exception and message, and nothing is written."""
+    with test.assertRaises(AuditHistoryError) as computed:
+        compute_snapshot_comparison(SLUG, from_run, to_run, audits_dir=test.audits, generated_at=GEN_DATE)
+    with test.assertRaises(AuditHistoryError) as compared:
+        test.compare(from_run, to_run)
+    test.assertIs(type(computed.exception), type(compared.exception))
+    test.assertEqual(str(computed.exception), str(compared.exception))
+    test.assertFalse(test.comparisons.exists())
+
+
+class ComputeSnapshotComparisonTests(_CompareTestCase):
+    """The same full 40-vs-40 pair as CompareFullRunTests."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.run1 = self.run_and_snapshot(T1)
+        self.analysis_overrides = {qid: NOT_CITED_JSON for qid in self.ids if qid[:2] in ("PA", "SD")}
+        self.run2 = self.run_and_snapshot(T2, new_run=False)
+
+    def compute(self, from_run=RUN_1, to_run=RUN_2):
+        return compute_snapshot_comparison(SLUG, from_run, to_run, audits_dir=self.audits, generated_at=GEN_DATE)
+
+    def test_a_structured_result(self) -> None:
+        result = self.compute()
+        self.assertIsInstance(result, SnapshotComparison)
+        self.assertEqual((result.audit_slug, result.from_run, result.to_run), (SLUG, RUN_1, RUN_2))
+        self.assertEqual((result.from_total, result.from_complete, result.to_total, result.to_complete), (40, 40, 40, 40))
+        self.assertEqual((list(result.shared_question_ids), result.shared_question_count), (self.ids, 40))
+        self.assertIsNone(result.requested_model_warning)
+        self.assertIsNone(result.version_warning)
+        self.assertEqual(metric_rows(result.progress), [
+            ("Brand Visibility", "100.0%", "60.0%", "-40.0pp", "Declined"),
+            ("Brand Mention Frequency", "40", "24", "-16", "Declined"),
+            ("Competitor Mention Change", "40", "56", "+16", "Informational"),
+            ("Sentiment Change (Positive Rate)", "100.0%", "60.0%", "-40.0pp", "Declined"),
+            ("Authority Source Change", "100.0%", "60.0%", "-40.0pp", "Declined"),
+            ("Funnel Stage Coverage", "5 of 5", "5 of 5", "+0", "No Change"),
+            ("Overall GEO Maturity", "Established", "Established", "No change in tier", "No Change"),
+        ])
+        self.assertEqual(result.progress.generated_at, GEN_DATE)
+        self.assertEqual(result.context, measurement_engine.RunComparisonContext(RUN_1, RUN_2, 40, 40, 40, 40, 40))
+        self.assertEqual((result.config.slug, result.config.brand, result.config.report_subject),
+                         (SLUG, self.config.brand, self.config.report_subject))
+        self.assertEqual((result.from_snapshot.run_id, result.to_snapshot.run_id), (RUN_1, RUN_2))
+        self.assertTrue(result.from_snapshot.is_valid and result.to_snapshot.is_valid)
+        with self.assertRaises(dataclasses.FrozenInstanceError):
+            result.audit_slug = "other"  # type: ignore[misc]
+
+    def test_b_computing_writes_nothing(self) -> None:
+        before = tree(self.root)
+        self.compute()
+        self.assertEqual(tree(self.root), before)
+        self.assertFalse(self.comparisons.exists())
+        self.assertEqual([p for p in self.root.rglob("*") if p.suffix == ".tmp"], [])
+
+    def test_c_no_gemini_and_no_env(self) -> None:
+        self.mock_answer.reset_mock()
+        self.mock_analysis.reset_mock()
+        forbidden = AssertionError("Gemini or .env must not be touched by a comparison")
+        with patch("gemini_client.generate_response", side_effect=forbidden), \
+                patch("gemini_client._load_dotenv", side_effect=forbidden), \
+                patch("recommendation_engine.generate_response", side_effect=forbidden):
+            result = self.compute()
+        self.assertEqual(result.shared_question_count, 40)
+        self.mock_answer.assert_not_called()
+        self.mock_analysis.assert_not_called()
+
+    def test_d_same_refusals_as_the_report_path(self) -> None:
+        _assert_same_refusal(self, RUN_2, RUN_1)  # wrong direction
+        _assert_same_refusal(self, RUN_1, RUN_1)  # same run
+        _assert_same_refusal(self, "2026-10-01", RUN_2)  # invalid run ID
+        _assert_same_refusal(self, RUN_1, run_id_for(T3))  # missing snapshot
+        with (self.run2.path / "audit_results.csv").open("a", encoding="utf-8") as handle:
+            handle.write("\n")
+        _assert_same_refusal(self, RUN_1, RUN_2)  # tampered snapshot
+
+    def test_e_compare_writes_exactly_the_rendered_computation(self) -> None:
+        computed = self.compute()
+        result = self.compare()
+        expected = measurement_engine.render_markdown(computed.progress, audit_config=computed.config, run_context=computed.context)
+        self.assertEqual(result.output_path.read_text(encoding="utf-8"), expected)
+        self.assertEqual(
+            (result.audit_slug, result.from_run, result.to_run, result.from_total, result.from_complete,
+             result.to_total, result.to_complete, result.shared_question_ids, result.requested_model_warning,
+             result.version_warning, result.progress),
+            (computed.audit_slug, computed.from_run, computed.to_run, computed.from_total, computed.from_complete,
+             computed.to_total, computed.to_complete, computed.shared_question_ids,
+             computed.requested_model_warning, computed.version_warning, computed.progress),
+        )
+
+    def test_f_compare_revalidates_immediately_before_writing(self) -> None:
+        # The snapshot changes after the comparison was computed (and
+        # validated) but before the report is written: nothing is written.
+        for snapshot, run_id, side in ((self.run2, RUN_2, "to"), (self.run1, RUN_1, "from")):
+            with self.subTest(side=side):
+                real_render = audit_history.render_markdown
+                results = snapshot.path / "audit_results.csv"
+                original = results.read_bytes()
+
+                def render_then_tamper(*args, **kwargs):
+                    text = real_render(*args, **kwargs)
+                    results.write_bytes(original + b"\n")
+                    return text
+
+                with patch("audit_history.render_markdown", side_effect=render_then_tamper), \
+                        patch("audit_history._write_report_atomically") as write:
+                    with self.assertRaises(SnapshotIntegrityError) as ctx:
+                        self.compare()
+                self.assertIn(f"Snapshot {run_id} ({side} run) changed during the comparison", str(ctx.exception))
+                write.assert_not_called()
+                self.assertFalse(self.comparisons.exists())
+                results.write_bytes(original)
+        self.assertTrue(self.compare().output_path.is_file())  # untouched snapshots still compare
+
+
+class ComputeComparabilityTests(_CompareTestCase):
+    """Refusals that need their own snapshot pairs."""
+
+    def second_run(self, edit) -> None:
+        self.run_and_snapshot(T1, limit=5, allow_partial=True)
+        edit()
+        self.run_and_snapshot(T2, limit=5, allow_partial=True, new_run=False)
+
+    def test_core_config_changed(self) -> None:
+        self.second_run(lambda: self.edit_config(brand="Lumiere Tea"))
+        _assert_same_refusal(self, RUN_1, RUN_2)
+
+    def test_competitors_reordered(self) -> None:
+        self.second_run(lambda: self.edit_config(competitors=list(reversed(CREATION_DATA["competitors"]))))
+        _assert_same_refusal(self, RUN_1, RUN_2)
+
+    def test_question_text_changed(self) -> None:
+        self.second_run(lambda: self.edit_questions(lambda rows: rows[0].update(question=rows[0]["question"] + "?")))
+        _assert_same_refusal(self, RUN_1, RUN_2)
+
+    def test_questions_reordered(self) -> None:
+        def swap(rows):
+            rows[0], rows[1] = rows[1], rows[0]
+        self.second_run(lambda: self.edit_questions(swap))
+        _assert_same_refusal(self, RUN_1, RUN_2)
+
+    def test_zero_shared_questions(self) -> None:
+        self.run_and_snapshot(T1, limit=8, allow_partial=True)
+        self.failing_analysis.update(self.ids[:8])
+        self.run_and_snapshot(T2, allow_partial=True, new_run=False)
+        _assert_same_refusal(self, RUN_1, RUN_2)
 
 
 if __name__ == "__main__":

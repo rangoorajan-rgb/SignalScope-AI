@@ -6,6 +6,57 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 project will adhere to [Semantic Versioning](https://semver.org/) once a first
 functional release exists.
 
+## [2.6.0] — 2026-09-29
+
+Read-only local integration API. A separate local tool can now inspect SignalScope's
+existing data — audits, the current run, snapshot history, snapshot comparisons and the
+monitoring plan — as JSON over a localhost, GET-only server. The Python engine remains
+authoritative; the API adds no business rules and changes nothing. The v2.5 recurring
+monitoring engine, the results file format, all metrics and the Boots UK Health & Beauty
+demonstration audit and its reports are unchanged.
+
+### Added
+
+- `compute_snapshot_comparison()` in `src/audit_history.py`: the snapshot comparison
+  (validation, comparability, shared structurally complete questions, the seven metrics
+  and the provenance warnings) as a pure, write-free function returning a
+  `SnapshotComparison`. `compare_snapshots()` now calls it, and its report, result, CLI
+  and final re-validation before writing are unchanged (reports are byte-identical).
+- `src/readonly_api.py`: the read-only resource layer (`READONLY_API_CONTRACT_VERSION =
+  1`). Health, audits, one audit, the current run, snapshots, one snapshot, a
+  comparison and a monitoring plan, as JSON-safe dicts with explicit fields only.
+  Current-run and snapshot data are kept separate; an invalid latest snapshot is never
+  replaced by an older one; comparisons never write `GEO_PROGRESS.md`; the monitoring
+  plan never runs a cycle and reports `api_key_check: "not_performed"`.
+- `src/readonly_api_server.py`: a standard-library HTTP server bound only to
+  127.0.0.1, with eight GET routes, per-segment path decoding with transport safety
+  checks, strict query rules, exact `Host` validation (`127.0.0.1` or `localhost` on the
+  server's own port) against DNS rebinding, optional exact-origin CORS
+  (`--allow-origin`), a JSON error envelope and sanitised 500s.
+- `docs/API_CONTRACT.md`: the contract for API version 1.
+- Tests: the comparison extraction (`tests/test_audit_history.py`),
+  `tests/test_readonly_api.py`, `tests/test_readonly_api_server.py` and the end-to-end
+  `tests/test_readonly_api_integration.py`. No test calls Gemini. 863 tests pass.
+
+### Changed
+
+- Version 2.6.0 (`src/version.py`, recorded in new snapshot manifests) and the
+  dashboard version display. Comparing a snapshot created under v2.6.0 with an older one
+  shows the existing neutral SignalScope-version warning; this is expected provenance
+  behaviour.
+- The exact release pin in `tests/test_create_audit.py` now expects 2.6.0.
+- Documentation (README).
+
+### Preserved / Not Included
+
+- The v2.5 monitoring engine and every CLI command, including `audit_history.py compare`
+  (which still writes its report), are unchanged.
+- No mutation endpoints, no Gemini execution through the API, no `.env` access by the
+  API, no raw evidence in responses.
+- Not included: authentication, a database, billing, a hosted or SaaS service, internet
+  exposure, wildcard CORS, a trend or findings endpoint, and any frontend integration —
+  the separate frontend is not yet connected to the API.
+
 ## [2.5.0] — 2026-09-28
 
 Recurring monitoring. The proven v2.4 lifecycle (new run, collection, snapshot,

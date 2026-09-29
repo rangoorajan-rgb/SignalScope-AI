@@ -6,9 +6,9 @@
 
 **Measure AI Visibility • Generate Explainable Insights • Prioritise Optimisation • Measure Improvement**
 
-![Version](https://img.shields.io/badge/version-v2.5.0-blue)
+![Version](https://img.shields.io/badge/version-v2.6.0-blue)
 ![Python](https://img.shields.io/badge/python-3.11+-3776AB?logo=python&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-779-brightgreen)
+![Tests](https://img.shields.io/badge/tests-863-brightgreen)
 ![Architecture](https://img.shields.io/badge/architecture-modular-orange)
 ![Status](https://img.shields.io/badge/status-complete-success)
 
@@ -18,7 +18,7 @@ SignalScope AI is an evidence-first GEO intelligence platform that helps organis
 
 Instead of attempting to automatically optimise websites, SignalScope AI measures AI visibility, analyses evidence, generates explainable optimisation recommendations and measures improvement over time.
 
-**Version:** 2.5.0
+**Version:** 2.6.0
 
 </div>
 
@@ -36,6 +36,7 @@ Instead of attempting to automatically optimise websites, SignalScope AI measure
 - Collecting Structured Evidence
 - Audit History and Comparison
 - Recurring Monitoring
+- SignalScope AI v2.6 — Read-Only Local API
 - Architecture Overview
 - Technology Stack
 - Repository Structure
@@ -182,7 +183,7 @@ Artificial Intelligence is reserved for tasks that genuinely benefit from reason
 
 - Modular architecture
 - Four independent processing engines
-- 779 automated tests
+- 863 automated tests
 - Deterministic analytics
 - Explainable AI workflow
 - Structured Markdown reporting
@@ -282,7 +283,7 @@ The dashboard shows the **current run only**. It has no snapshot selector, histo
 
 The bundled demonstration engagement is **Boots UK**, in the Health & Beauty Retail category, within the United Kingdom market, benchmarked against Superdrug, Amazon and Holland & Barrett. It remains the default audit for every command and for the dashboard.
 
-Since v2.1, SignalScope AI provides a **multi-company audit foundation**: the Audit, Insights, Recommendation and Measurement Engines are no longer tied to one company and can run any audit that has its own configuration file. Since v2.2, an operator can create a new client audit workspace with one command (see [Creating a New Audit](#creating-a-new-audit)), and since v2.3 collect structured evidence for all of its questions with one resumable command (see [Collecting Structured Evidence](#collecting-structured-evidence)). Since v2.4, a completed run can be preserved as an immutable snapshot, a fresh run collected later, and two preserved runs compared (see [Audit History and Comparison](#audit-history-and-comparison)). Since v2.5, that lifecycle can recur unattended: an external scheduler runs one safe monitoring cycle at a time (see [Recurring Monitoring](#recurring-monitoring)).
+Since v2.1, SignalScope AI provides a **multi-company audit foundation**: the Audit, Insights, Recommendation and Measurement Engines are no longer tied to one company and can run any audit that has its own configuration file. Since v2.2, an operator can create a new client audit workspace with one command (see [Creating a New Audit](#creating-a-new-audit)), and since v2.3 collect structured evidence for all of its questions with one resumable command (see [Collecting Structured Evidence](#collecting-structured-evidence)). Since v2.4, a completed run can be preserved as an immutable snapshot, a fresh run collected later, and two preserved runs compared (see [Audit History and Comparison](#audit-history-and-comparison)). Since v2.5, that lifecycle can recur unattended: an external scheduler runs one safe monitoring cycle at a time (see [Recurring Monitoring](#recurring-monitoring)). Since v2.6, a local read-only JSON API lets a separate local tool inspect audits, runs, snapshots and comparisons without changing anything (see [Read-Only Local API](#signalscope-ai-v26--read-only-local-api)).
 
 SignalScope AI remains an **operator-assisted audit system, not a SaaS product**. It has no built-in scheduler (recurring monitoring is triggered externally), no persistent database, no authentication or user accounts, no billing, no client self-service, no client selector and no history view in the dashboard.
 
@@ -793,6 +794,26 @@ The `.monitoring.lock` file is git-ignored for every audit, including the Boots 
 
 ---
 
+# SignalScope AI v2.6 — Read-Only Local API
+
+Since v2.6, SignalScope can serve its existing data as JSON to a separate local tool, such as a future frontend. The API is a thin, read-only layer over the same engine: every rule (validation, snapshot integrity, comparability, metrics, monitoring decisions) stays in SignalScope, and the CLI commands remain the only way to change audit state.
+
+```bash
+python src/readonly_api_server.py --port 8765
+python src/readonly_api_server.py --port 8765 --allow-origin http://localhost:3000
+```
+
+It answers eight `GET` routes: health, the audit list, one audit, the current run, the snapshot history, one snapshot, a snapshot-to-snapshot comparison, and a read-only monitoring plan. The full contract — routes, fields, metric meanings, empty states and error codes — is in [docs/API_CONTRACT.md](docs/API_CONTRACT.md).
+
+> **Local and read-only.** The server binds only to `127.0.0.1`, accepts only `Host: 127.0.0.1:<port>` or `localhost:<port>`, answers only `GET`, and allows cross-origin browser access only for one exact origin given with `--allow-origin`. It is intended for local integration, not internet exposure: there is no authentication, database, billing or hosted service.
+
+- **Nothing is changed.** No endpoint writes a file, resets a run, creates a snapshot, writes a comparison report, collects evidence, calls Gemini or reads the `.env` key.
+- **Current run and history are kept apart.** `/current-run` describes the working files; `/snapshots` is the immutable history. Comparisons use snapshots only, and an invalid latest snapshot is reported as such rather than replaced by an older one.
+- **Monitoring stays external.** The monitoring-plan endpoint only reports what a cycle would do for a given `interval_days`; the external scheduler still runs `run_monitoring_cycle.py`.
+- The dashboard is unchanged, and no frontend is connected to the API yet.
+
+---
+
 # Architecture Overview
 
 SignalScope AI follows a modular, pipeline-based architecture where each engine has a single responsibility. Rather than allowing one large AI model to make every decision, deterministic software performs objective analysis while AI is used only where reasoning and interpretation genuinely add value.
@@ -889,6 +910,8 @@ SignalScope-AI/
 │   ├── audit_history.py             # Audit history: snapshot, list, new-run, compare (operator CLI)
 │   ├── version.py                   # SignalScope version recorded in snapshot manifests
 │   ├── run_monitoring_cycle.py      # One recurring monitoring cycle (for an external scheduler)
+│   ├── readonly_api.py              # Read-only API resources (JSON-safe views of the engine)
+│   ├── readonly_api_server.py       # Localhost GET-only HTTP server over readonly_api
 │   ├── run_end_to_end_demo.py       # Full pipeline, single question
 │   ├── check_gemini_connection.py   # Standalone Gemini connectivity check
 │   └── dashboard_data.py            # Non-UI data layer for the Streamlit dashboard
@@ -1552,7 +1575,7 @@ Rather than relying solely on manual testing, SignalScope AI includes an extensi
 
 ## Test Coverage
 
-The project contains **779 automated tests**, including:
+The project contains **863 automated tests**, including:
 
 - unit tests
 - integration tests
@@ -1577,6 +1600,8 @@ v2.3 added structured batch tests: a full 40-question run for a fictional client
 v2.4 added audit history tests: complete and partial snapshots, SHA-256 tamper detection, verification of recorded requested models against the preserved evidence, failure rollback, the safe new-run reset and recovery from every interruption point, a multi-run lifecycle, and run comparisons (the shared-question rule, unequal and partial coverage, every comparability refusal, direction, model and version warnings). All of them use fictional audits in temporary folders with Gemini faked; the Boots golden reports are unchanged.
 
 v2.5 added recurring monitoring tests: the planner and every start state, the due calculation, the methodology and API-key ordering guards, the per-audit lock (including a killed process releasing it), the read-only dry run, chunked collection and the spend circuit breaker, resume, complete-only snapshots, the partial-run policy, previous → new comparisons, re-baselining, recovery after a crash at each step, a multi-cycle history and the duplicate-trigger guard. Mutation checks confirmed the tests catch each deliberately broken safeguard. No test calls the Gemini API.
+
+v2.6 added read-only API tests: the extracted comparison computation (byte-identical reports, same refusals, the pre-write re-validation), every resource's exact response shape, no writes and no Gemini or `.env` access, path and Host-header safety (including DNS rebinding), the method and CORS policies, sanitised errors, and end-to-end journeys through a real localhost server — including the separation of the current run from snapshots and the real Boots audit read without changes.
 
 ---
 
@@ -1789,6 +1814,7 @@ Current limitations include:
 - no authentication
 - no built-in scheduler: recurring monitoring is triggered by an external scheduler (Task Scheduler or cron)
 - no history view in the dashboard; comparisons cover exactly two snapshots at a time
+- the read-only API is local only (127.0.0.1, GET only, no authentication) and is not for internet exposure
 - the monitoring lock is for local filesystems only; a persistently failing question may be re-attempted in later chunks of the same cycle (see [Recurring Monitoring](#recurring-monitoring))
 - new audits require exactly three competitors and use the single master question template
 
@@ -1815,7 +1841,8 @@ These limitations were accepted in favour of demonstrating software architecture
 | v2.2 | Repeatable client audit creation | Released |
 | v2.3 | Structured batch evidence collection | Released |
 | v2.4 | Audit snapshots and longitudinal history | Released |
-| v2.5 | Recurring monitoring workflow | Current release (ready for release) |
+| v2.5 | Recurring monitoring workflow | Released |
+| v2.6 | Read-only local integration API | Current release |
 
 Later platform work (database, cloud scheduling, a multi-project interface, authentication and cloud deployment, with billing and client self-service only when justified) is not yet scheduled.
 
@@ -1928,7 +1955,7 @@ See the accompanying `LICENSE` file for full details.
 
 <div align="center">
 
-**SignalScope AI v2.5.0**
+**SignalScope AI v2.6.0**
 
 *Evidence-Driven Generative Engine Optimisation Intelligence Platform*
 
