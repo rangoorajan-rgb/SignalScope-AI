@@ -917,6 +917,58 @@ class ComparisonResult:
         return len(self.shared_question_ids)
 
 
+@dataclass(frozen=True)
+class SnapshotComparison:
+    """A validated comparison of two snapshots, computed without writing
+    anything: the shared questions, the measurement engine's Progress (the
+    seven metrics), the coverage and warning context, and the snapshot
+    config used for rendering."""
+
+    audit_slug: str
+    from_snapshot: SnapshotInfo
+    to_snapshot: SnapshotInfo
+    config: AuditConfig
+    shared_question_ids: tuple[str, ...]
+    progress: Progress
+    context: RunComparisonContext
+
+    @property
+    def from_run(self) -> str:
+        return self.context.from_run
+
+    @property
+    def to_run(self) -> str:
+        return self.context.to_run
+
+    @property
+    def from_total(self) -> int:
+        return self.context.from_total
+
+    @property
+    def from_complete(self) -> int:
+        return self.context.from_complete
+
+    @property
+    def to_total(self) -> int:
+        return self.context.to_total
+
+    @property
+    def to_complete(self) -> int:
+        return self.context.to_complete
+
+    @property
+    def shared_question_count(self) -> int:
+        return len(self.shared_question_ids)
+
+    @property
+    def requested_model_warning(self) -> str | None:
+        return self.context.requested_model_warning
+
+    @property
+    def version_warning(self) -> str | None:
+        return self.context.version_warning
+
+
 def _reports_root(reports_dir: str | Path | None, audits_dir: str | Path | None) -> Path:
     # reports/ sits next to audits/, so a comparison of an audit in a
     # temporary audits folder never writes into the real reports/.
@@ -1032,27 +1084,24 @@ def _check_slug_arg(slug: str) -> None:
         raise AuditHistoryError(str(exc)) from exc
 
 
-def compare_snapshots(
+def compute_snapshot_comparison(
     slug: str,
     from_run: str,
     to_run: str,
     *,
     audits_dir: str | Path | None = None,
-    reports_dir: str | Path | None = None,
     generated_at: date | None = None,
-) -> ComparisonResult:
-    """Measure change from an earlier snapshot to a later one of the same
-    audit, and write the derived GEO_PROGRESS.md to
-    reports/<slug>/comparisons/<from-run>__<to-run>/ (replacing an earlier
-    comparison of the same pair).
+) -> SnapshotComparison:
+    """Compare an earlier snapshot with a later one of the same audit and
+    return the structured result, writing nothing.
 
     Both snapshots must be valid, from_run must be earlier than to_run,
     and the snapshots' own configs (core fields) and question libraries
     (ordered ID, stage and text) must match. The metrics come from
     measurement_engine.compare_audits over the Gemini questions that are
     structurally complete in both runs. Reads only the snapshots' own
-    files; writes only the comparison report, and nothing at all when any
-    check fails. Never calls Gemini.
+    files and never calls Gemini. Raises AuditHistoryError (including
+    NotComparableError) or SnapshotIntegrityError when any check fails.
     """
     _check_slug_arg(slug)
     earlier_at, later_at = parse_run_id(from_run), parse_run_id(to_run)
@@ -1116,12 +1165,45 @@ def compare_snapshots(
         requested_model_warning=model_warning,
         version_warning=version_warning,
     )
-    markdown = render_markdown(progress, audit_config=config, run_context=context)
+    return SnapshotComparison(
+        audit_slug=slug,
+        from_snapshot=earlier.info,
+        to_snapshot=later.info,
+        config=config,
+        shared_question_ids=shared,
+        progress=progress,
+        context=context,
+    )
+
+
+def compare_snapshots(
+    slug: str,
+    from_run: str,
+    to_run: str,
+    *,
+    audits_dir: str | Path | None = None,
+    reports_dir: str | Path | None = None,
+    generated_at: date | None = None,
+) -> ComparisonResult:
+    """Measure change from an earlier snapshot to a later one of the same
+    audit (compute_snapshot_comparison), and write the derived
+    GEO_PROGRESS.md to reports/<slug>/comparisons/<from-run>__<to-run>/
+    (replacing an earlier comparison of the same pair).
+
+    Immediately before writing, both snapshots are validated again, so a
+    report is never written from a snapshot that changed while it was
+    being compared. Writes only the comparison report, and nothing at all
+    when any check fails. Never calls Gemini.
+    """
+    comparison = compute_snapshot_comparison(
+        slug, from_run, to_run, audits_dir=audits_dir, generated_at=generated_at
+    )
+    markdown = render_markdown(comparison.progress, audit_config=comparison.config, run_context=comparison.context)
 
     # The snapshots must still be exactly what was validated and read.
-    for loaded, side in ((earlier, "from"), (later, "to")):
-        if not inspect_snapshot(loaded.info.path, slug=slug).is_valid:
-            raise SnapshotIntegrityError(f"Snapshot {loaded.info.run_id} ({side} run) changed during the comparison.")
+    for info, side in ((comparison.from_snapshot, "from"), (comparison.to_snapshot, "to")):
+        if not inspect_snapshot(info.path, slug=slug).is_valid:
+            raise SnapshotIntegrityError(f"Snapshot {info.run_id} ({side} run) changed during the comparison.")
 
     output = comparison_output_path(slug, from_run, to_run, reports_dir=_reports_root(reports_dir, audits_dir))
     _write_report_atomically(output, markdown)
@@ -1129,14 +1211,14 @@ def compare_snapshots(
         audit_slug=slug,
         from_run=from_run,
         to_run=to_run,
-        from_total=context.from_total,
-        from_complete=context.from_complete,
-        to_total=context.to_total,
-        to_complete=context.to_complete,
-        shared_question_ids=shared,
-        requested_model_warning=model_warning,
-        version_warning=version_warning,
-        progress=progress,
+        from_total=comparison.from_total,
+        from_complete=comparison.from_complete,
+        to_total=comparison.to_total,
+        to_complete=comparison.to_complete,
+        shared_question_ids=comparison.shared_question_ids,
+        requested_model_warning=comparison.requested_model_warning,
+        version_warning=comparison.version_warning,
+        progress=comparison.progress,
         output_path=output,
     )
 
